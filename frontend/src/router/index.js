@@ -32,7 +32,7 @@ const routes = [
   {
     path: '/search',
     name: 'SearchResults',
-    component: () => import('../views/SearchResults.vue'),
+    component: () => import('@/views/SearchResults.vue'),
     meta: { requiresAuth: true }
   },
   {

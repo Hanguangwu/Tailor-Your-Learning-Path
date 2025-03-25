@@ -62,30 +62,30 @@
 import { ref, onMounted, computed } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import CourseCard from '@/components/CourseCard.vue'
-import SearchBar from '@/components/SearchBar.vue'
+//import SearchBar from '@/components/SearchBar.vue'
 export default {
     name: 'Dashboard',
     components: {
         CourseCard,
-        SearchBar
+        //SearchBar
     },
     setup() {
         const store = useStore()
         const router = useRouter()
 
-        // 移除未使用的 searchQuery
         const user = computed(() => store.state.auth.user)
         const featuredCourses = computed(() => store.state.courses.featuredCourses)
-        const featuredMeta = computed(() => store.state.courses.featuredMeta) // 添加这行
-        const recommendedCourses = computed(() => store.state.courses.recommendedCourses)
+        const featuredMeta = computed(() => store.state.courses.featuredMeta)
+        const recommendedCourses = computed(() => store.state.courses.recommendedCourses)  // 确保推荐课程数据正确获取
 
         onMounted(async () => {
             if (store.state.auth.token) {
                 try {
                     await Promise.all([
                         store.dispatch('courses/fetchFeaturedCourses'),
-                        store.dispatch('courses/fetchRecommendedCourses')
+                        store.dispatch('courses/fetchRecommendedCourses')  // 确保推荐课程数据被正确加载
                     ])
                 } catch (error) {
                     console.error('加载课程失败:', error)
@@ -93,7 +93,7 @@ export default {
             }
         })
 
-        const handleFeaturedPageChange = async (page) => {  // 添加分页处理方法
+        const handleFeaturedPageChange = async (page) => {
             try {
                 await store.dispatch('courses/fetchFeaturedCourses', { page })
                 window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -102,15 +102,14 @@ export default {
             }
         }
 
-        // 修改 handleSearch 方法，接收搜索文本参数
-        const handleSearch = async (searchText) => {
-            if (searchText.trim()) {
-                await router.push({
-                    path: '/search',
-                    query: { q: searchText }
-                })
-            }
-        }
+        // const handleSearch = async (searchText) => {
+        //     if (searchText.trim()) {
+        //         await router.push({
+        //             path: '/search',
+        //             query: { q: searchText }
+        //         })
+        //     }
+        // }
 
         const selectCourse = async (courseId) => {
             try {
@@ -130,12 +129,12 @@ export default {
         return {
             user,
             featuredCourses,
-            featuredMeta,         // 添加这行
-            recommendedCourses,
-            handleSearch,
+            featuredMeta,
+            recommendedCourses,  // 确保推荐课程数据被正确返回
+            //handleSearch,
             selectCourse,
             handleLogout,
-            handleFeaturedPageChange  // 添加这行
+            handleFeaturedPageChange
         }
     }
 }

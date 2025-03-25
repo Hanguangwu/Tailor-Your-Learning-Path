@@ -56,26 +56,28 @@
           </template>
 
           <!-- 已登录状态 -->
-          <div v-else class="relative" @mouseenter="showDropdown = true" @mouseleave="hideDropdown">
-            <button class="flex items-center text-gray-700 hover:text-indigo-600">
-              {{ username }}
-              <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <!-- 用户下拉菜单 - 修改显示逻辑 -->
-            <div v-show="showDropdown"
-              class="absolute right-0 w-48 bg-white shadow-lg rounded-md mt-2 py-2 transition-all duration-200"
-              @mouseenter="clearHideTimer" @mouseleave="hideDropdown">
-              <router-link to="/profile/courses" class="block px-4 py-2 text-gray-700 hover:bg-indigo-50"
-                @click="showDropdown = false">
-                个人中心
-              </router-link>
-              <button @click="handleLogout" class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50">
-                退出登录
+          <template v-else>
+            <div class="relative" @mouseenter="showDropdown = true" @mouseleave="hideDropdown">
+              <button class="flex items-center text-gray-700 hover:text-indigo-600">
+                {{ username }}
+                <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
+              <!-- 用户下拉菜单 - 修改显示逻辑 -->
+              <div v-show="showDropdown"
+                class="absolute right-0 w-48 bg-white shadow-lg rounded-md mt-2 py-2 transition-all duration-200"
+                @mouseenter="clearHideTimer" @mouseleave="hideDropdown">
+                <router-link to="/profile/courses" class="block px-4 py-2 text-gray-700 hover:bg-indigo-50"
+                  @click="showDropdown = false">
+                  个人中心
+                </router-link>
+                <button @click="handleLogout" class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50">
+                  退出登录
+                </button>
+              </div>
             </div>
-          </div>
+          </template>
         </div>
       </div>
     </div>
@@ -88,7 +90,7 @@ import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import SearchBar from './SearchBar.vue'
-
+import { onBeforeUnmount } from 'vue'
 export default {
   name: 'Navbar',
   components: {
@@ -101,7 +103,7 @@ export default {
     const hideTimer = ref(null)
 
     const isLoggedIn = computed(() => store.state.auth.token !== null)
-    const username = computed(() => store.state.auth.user?.username || '')
+    const username = computed(() => isLoggedIn.value ? store.state.auth.user?.username || '' : '')  // 确保未登录时不显示用户名
 
     const hideDropdown = () => {
       hideTimer.value = setTimeout(() => {
@@ -116,11 +118,11 @@ export default {
       }
     }
 
-    const handleSearch = async (searchText) => {
-      if (searchText.trim()) {
-        await router.push({
+    const handleSearch = (keyword) => {
+      if (keyword.trim()) {
+        router.push({
           path: '/search',
-          query: { q: searchText }
+          query: { keyword: keyword.trim() }
         })
       }
     }
@@ -130,6 +132,17 @@ export default {
       await store.dispatch('auth/logout')
       router.push('/login')
     }
+
+    // 监听窗口关闭事件
+    const handleWindowClose = () => {
+      store.dispatch('auth/logout')
+    }
+
+    window.addEventListener('beforeunload', handleWindowClose)
+
+    onBeforeUnmount(() => {
+      window.removeEventListener('beforeunload', handleWindowClose)
+    })
 
     return {
       isLoggedIn,

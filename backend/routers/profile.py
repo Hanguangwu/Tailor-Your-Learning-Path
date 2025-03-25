@@ -8,15 +8,40 @@ from .auth import get_current_user, verify_password, get_password_hash
 router = APIRouter()
 
 # 数据模型定义
-class ProfileUpdate(BaseModel):
+class UpdateProfileModel(BaseModel):
     username: Optional[str] = None
-    current_password: Optional[str] = None
-    new_password: Optional[str] = None
+    currentPassword: Optional[str] = None
+    newPassword: Optional[str] = None
 
-class InterestUpdate(BaseModel):
+
+class InterestModel(BaseModel):
     interest: str
 
+
 # API路由
+
+@router.post("/profile")
+async def update_profile(profile_data: UpdateProfileModel, current_user: str = Depends(get_current_user)):
+    user = db.users.find_one({"_id": ObjectId(current_user)})
+    if not user:
+        raise HTTPException(status_code=404, detail="用户未找到")
+    print("即将开始验证")
+    # 验证当前密码
+    if profile_data.currentPassword and not verify_password(profile_data.currentPassword, user['password']):
+        raise HTTPException(status_code=400, detail="当前密码不正确")
+    print("即将开始更新用户名")
+    # 更新用户名
+    if profile_data.username:
+        db.users.update_one({"_id": ObjectId(current_user)}, {"$set": {"username": profile_data.username}})
+    print("即将开始更新密码")
+    # 更新密码
+    if profile_data.newPassword:
+        hashed_password = get_password_hash(profile_data.newPassword)
+        db.users.update_one({"_id": ObjectId(current_user)}, {"$set": {"password": hashed_password}})
+
+    return {"message": "个人信息更新成功"}
+
+
 @router.get("/selected-courses")
 async def get_selected_courses(current_user: str = Depends(get_current_user)):
     try:
@@ -97,6 +122,7 @@ async def get_selected_courses(current_user: str = Depends(get_current_user)):
 
 """
 
+"""
 @router.get("/interests")
 async def get_interests(current_user: str = Depends(get_current_user)):
     try:
@@ -132,7 +158,32 @@ async def remove_interest(interest: str, current_user: str = Depends(get_current
         return {"message": "兴趣删除成功"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+"""
 
+@router.get("/interests")
+async def get_interests(current_user: str = Depends(get_current_user)):
+    user = db.users.find_one({"_id": ObjectId(current_user)})
+    if not user:
+        raise HTTPException(status_code=404, detail="用户未找到")
+    return {"interests": user.get("interests", [])}
+
+@router.post("/interests")
+async def add_interest(interest_data: InterestModel, current_user: str = Depends(get_current_user)):
+    interest = interest_data.interest
+    db.users.update_one(
+        {"_id": ObjectId(current_user)},
+        {"$addToSet": {"interests": interest}}
+    )
+    return {"interest": interest}
+@router.delete("/interests/{interest}")
+async def remove_interest(interest: str, current_user: str = Depends(get_current_user)):
+    db.users.update_one(
+        {"_id": ObjectId(current_user)},
+        {"$pull": {"interests": interest}}
+    )
+    return {"message": "兴趣已删除"}
+
+"""
 @router.put("/update")
 async def update_profile(profile: ProfileUpdate, current_user: str = Depends(get_current_user)):
     try:
@@ -173,6 +224,7 @@ async def update_profile(profile: ProfileUpdate, current_user: str = Depends(get
         return {"message": "个人信息更新成功"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+"""
 
 @router.get("/learning-path")
 async def get_learning_path(current_user: str = Depends(get_current_user)):

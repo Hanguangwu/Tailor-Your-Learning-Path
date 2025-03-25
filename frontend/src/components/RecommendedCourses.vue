@@ -26,7 +26,6 @@
 import { onMounted, computed } from 'vue'
 import { useStore } from 'vuex'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Autoplay, Pagination, Navigation } from 'swiper'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import 'swiper/css/navigation'

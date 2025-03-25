@@ -23,7 +23,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # 获取环境变量，设置默认值
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-if-not-set")
+SECRET_KEY = os.getenv("SECRET_KEY", "1234567890987654321")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 

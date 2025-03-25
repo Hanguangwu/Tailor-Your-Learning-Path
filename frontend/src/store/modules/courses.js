@@ -2,14 +2,14 @@ import axios from '@/axios'
 
 const state = {
   featuredCourses: [],
-  recommendedCourses: [],
-  searchResults: [],
   featuredMeta: {    // 添加精选课程的元数据
     total: 0,
     page: 1,
     pageSize: 6,
     totalPages: 9
   },
+  recommendedCourses: [],
+  searchResults: [],
   searchMeta: {
     total: 0,
     page: 1,
@@ -96,6 +96,30 @@ const actions = {
       throw error
     }
   },
+
+  async searchCourses({ commit }, { keyword, page = 1 }) {
+    try {
+      const response = await axios.get('/api/courses/search', {
+        params: {
+          keyword,
+          page,
+          page_size: 9
+        }
+      })
+      commit('SET_SEARCH_RESULTS', response.data)
+      return response.data
+    } catch (error) {
+      console.error('搜索课程失败:', error)
+      commit('SET_SEARCH_RESULTS', {
+        courses: [],
+        total: 0,
+        page: 1,
+        page_size: 9,
+        total_pages: 0
+      })
+      throw error
+    }
+  },
   
   async selectCourse({ commit }, courseId) {
     try {
@@ -112,50 +136,14 @@ const actions = {
   async fetchRecommendedCourses({ commit }) {
     try {
       const response = await axios.get('/api/courses/recommended')
-      commit('SET_RECOMMENDED_COURSES', response.data)
+      if (response.data && response.data.length > 0) {
+        commit('SET_RECOMMENDED_COURSES', response.data)
+      } else {
+        console.warn('没有推荐课程')
+      }
+      return response.data
     } catch (error) {
       console.error('获取推荐课程失败:', error)
-      throw error
-    }
-  },
-  async searchCourses({ commit }, { query, page = 1 }) {
-    try {
-      const response = await axios.get('/api/courses/search', {
-        params: {
-          q: query,
-          page,
-          page_size: 9
-        }
-      })
-      commit('SET_SEARCH_RESULTS', {
-        courses: response.data.courses || [],
-        total: response.data.total || 0,
-        page: response.data.page || 1,
-        page_size: response.data.page_size || 9,
-        total_pages: response.data.total_pages || 0
-      })
-      return response.data
-    } catch (error) {
-      console.error('搜索课程失败:', error)
-      // 搜索失败时返回空结果
-      commit('SET_SEARCH_RESULTS', {
-        courses: [],
-        total: 0,
-        page: 1,
-        page_size: 9,
-        total_pages: 0
-      })
-      throw error
-    }
-  },
-  async unselectCourse({ commit }, courseId) {
-    try {
-      const response = await axios.delete(`/api/profile/courses/${courseId}`)
-      // 退选成功后更新状态
-      commit('REMOVE_SELECTED_COURSE', courseId)
-      return response.data
-    } catch (error) {
-      console.error('退选课程失败:', error.response?.data || error.message)
       throw error
     }
   }

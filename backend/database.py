@@ -27,12 +27,7 @@ def init_db():
     
     # 为课程集合创建索引
     db.courses.create_index([
-        ("title", "text"),
+        ("course_name", "text"),
         ("description", "text"),
-        ("tags", "text")
-    ])# 为课程集合创建索引
-    db.courses.create_index([
-        ("title", "text"),
-        ("description", "text"),
-        ("tags", "text")
+        ("category", "text")
     ])

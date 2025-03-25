@@ -1,6 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from bson import ObjectId
+from routers.auth import oauth2_scheme, get_current_user 
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, profile, courses, chat, comments  # 添加 comments
+from routers import auth, profile, courses, chat, comments
 
 app = FastAPI()
 
