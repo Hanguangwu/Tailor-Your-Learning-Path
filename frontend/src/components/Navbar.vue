@@ -35,6 +35,11 @@
             <router-link to="/chat" class="text-gray-700 hover:text-indigo-600">
               AI聊天
             </router-link>
+
+            <!-- 新增记忆工具按钮 -->
+            <router-link to="/memory-tool" class="text-gray-700 hover:text-indigo-600">
+              记忆工具
+            </router-link>
           </div>
         </div>
 
@@ -85,12 +90,11 @@
 </template>
 
 <script>
-import { ref } from 'vue'
-import { computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import SearchBar from './SearchBar.vue'
-import { onBeforeUnmount } from 'vue'
+
 export default {
   name: 'Navbar',
   components: {
@@ -133,13 +137,42 @@ export default {
       router.push('/login')
     }
 
-    // 监听窗口关闭事件
+    // 移除窗口关闭事件监听器，因为它会在页面刷新时导致用户退出登录
+    // const handleWindowClose = () => {
+    //   store.dispatch('auth/logout')
+    // }
+
+    // window.addEventListener('beforeunload', handleWindowClose)
+
+    // onBeforeUnmount(() => {
+    //   window.removeEventListener('beforeunload', handleWindowClose)
+    // })
+
+    // 使用sessionStorage区分页面刷新和浏览器关闭
     const handleWindowClose = () => {
-      store.dispatch('auth/logout')
+      // 在页面即将卸载时设置一个标记
+      sessionStorage.setItem('isReloading', 'true')
+      
+      // 设置一个延迟，如果是真正的关闭浏览器，这个延迟不会执行
+      setTimeout(() => {
+        sessionStorage.removeItem('isReloading')
+      }, 0)
     }
 
     window.addEventListener('beforeunload', handleWindowClose)
 
+    // 在组件挂载时检查是否是刷新页面
+    onMounted(() => {
+      const isReloading = sessionStorage.getItem('isReloading')
+      if (isReloading) {
+        // 是刷新页面，移除标记
+        sessionStorage.removeItem('isReloading')
+      } else {
+        // 是新打开的页面，不做任何操作
+      }
+    })
+
+    // 在组件卸载前移除事件监听
     onBeforeUnmount(() => {
       window.removeEventListener('beforeunload', handleWindowClose)
     })

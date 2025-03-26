@@ -84,6 +84,8 @@ const mutations = {
   SET_AUTH_DATA(state, { token, user }) {
     state.token = token
     state.user = user
+    //console.log("SET_AUTH_DATA:", token)
+    //console.log("SET_AUTH_DATA:", user)
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(user))
   },

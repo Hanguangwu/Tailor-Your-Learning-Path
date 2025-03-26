@@ -30,6 +30,12 @@ const routes = [
     component: () => import('@/views/Home.vue')
   },
   {
+    path: '/memory-tool',
+    name: 'MemoryTool',
+    component: () => import('@/views/MemoryTool.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/search',
     name: 'SearchResults',
     component: () => import('@/views/SearchResults.vue'),

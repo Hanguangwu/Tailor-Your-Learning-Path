@@ -1,8 +1,6 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends
-from bson import ObjectId
-from routers.auth import oauth2_scheme, get_current_user 
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, profile, courses, chat, comments
+from routers import auth, profile, courses, chat, comments, documents
 
 app = FastAPI()
 
@@ -18,7 +16,10 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(profile.router, prefix="/api/profile", tags=["profile"])
 app.include_router(courses.router, prefix="/api/courses", tags=["courses"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
-app.include_router(comments.router, prefix="/api/comments", tags=["comments"])  # 添加这行
+app.include_router(comments.router, prefix="/api/comments", tags=["comments"])
+app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+
+
 if __name__ == "__main__":
     import uvicorn
     import signal
