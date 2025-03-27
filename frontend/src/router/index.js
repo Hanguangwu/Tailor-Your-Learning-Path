@@ -36,6 +36,14 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/self-test',
+    name: 'SelfTest',
+    component: () => import('../views/SelfTest.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
     path: '/search',
     name: 'SearchResults',
     component: () => import('@/views/SearchResults.vue'),

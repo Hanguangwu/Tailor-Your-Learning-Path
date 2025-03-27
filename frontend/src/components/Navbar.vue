@@ -40,6 +40,11 @@
             <router-link to="/memory-tool" class="text-gray-700 hover:text-indigo-600">
               记忆工具
             </router-link>
+
+            <!-- 新增自测功能按钮 -->
+            <router-link to="/self-test" class="text-gray-700 hover:text-indigo-600">
+              自测练习
+            </router-link>
           </div>
         </div>
 

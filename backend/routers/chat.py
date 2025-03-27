@@ -28,7 +28,6 @@ class ChatRecord(BaseModel):
 
 @router.post("/sendMessage")
 async def chat(request: ChatRequest, current_user: str = Depends(get_current_user)):
-    #print("chat post in chat.py")
     try:
         # 获取当前用户信息
         user = db.users.find_one({"_id": ObjectId(current_user)})
