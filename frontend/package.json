@@ -46,6 +46,9 @@
     "vite-plugin-svg-icons": "^2.0.1",
     "vue-template-compiler": "^2.7.16"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.9.5"
+  },
   "eslintConfig": {
     "root": true,
     "env": {
