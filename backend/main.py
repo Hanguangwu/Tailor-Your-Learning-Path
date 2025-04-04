@@ -13,7 +13,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],  # 允许前端开发服务器的地址
+    allow_origins=[*],  # 允许前端开发服务器的地址
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,15 +29,4 @@ app.include_router(self_test.router, prefix="/api/self-test", tags=["self-test"]
 
 if __name__ == "__main__":
     import uvicorn
-    import signal
-    import sys
-
-
-    def signal_handler(sig, frame):
-        print('Exiting gracefully...')
-        sys.exit(0)
-
-
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
     uvicorn.run("main:app", host="0.0.0.0", port=3000)
