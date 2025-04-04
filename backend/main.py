@@ -27,6 +27,10 @@ app.include_router(comments.router, prefix="/api/comments", tags=["comments"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 app.include_router(self_test.router, prefix="/api/self-test", tags=["self-test"])
 
+@app.get("/")  
+def read_root():  
+    return {"message": "Hello, World!"}  
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=3000)
