@@ -31,6 +31,11 @@ app.include_router(self_test.router, prefix="/api/self-test", tags=["self-test"]
 def read_root():  
     return {"message": "Hello, World!"}  
 
+# 如果需要支持 HEAD 请求，可以这样定义  
+@app.head("/")  
+def head_root():  
+    return { "message": "Hello, World!" }  
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=3000)
