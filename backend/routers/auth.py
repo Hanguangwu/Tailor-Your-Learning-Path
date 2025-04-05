@@ -71,6 +71,11 @@ class SendCodeRequest(BaseModel):
     email: EmailStr
     type: str
 
+# 添加验证码验证模型
+class VerifyCodeRequest(BaseModel):
+    email: EmailStr
+    code: str
+    type: str
 
 # 密码处理函数
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -182,15 +187,12 @@ async def send_verification_code(request: SendCodeRequest, background_tasks: Bac
     try:
         # 验证邮箱是否存在（针对重置密码）
         if request.type == "reset_password":
-            #print("request:", request)
             user = db.users.find_one({"email": request.email})
-            #print("user:", user)
             if user == None:
                 raise HTTPException(status_code=404, detail="该邮箱未注册")
         
         # 生成验证码
         code = generate_verification_code()
-        #print("生成的验证码:", code)
         
         # 存储验证码并设置10分钟过期时间
         try:
@@ -336,3 +338,39 @@ async def reset_password(request: ResetPasswordConfirm):
     except Exception as e:
         print(f"重置密码异常: {e}")
         raise HTTPException(status_code=500, detail=f"重置密码失败: {str(e)}")
+
+@router.post("/verify-code")
+async def verify_code(request: VerifyCodeRequest):
+    """验证验证码"""
+    try:
+        # 首先尝试从数据库验证
+        reset_record = None
+        try:
+            reset_record = db.reset_codes.find_one({
+                "email": request.email,
+                "code": request.code,
+                "type": request.type,
+                "expires_at": {"$gt": datetime.utcnow()}  # 确保验证码未过期
+            })
+        except Exception as db_error:
+            print(f"从数据库验证验证码失败: {db_error}")
+        
+        # 如果数据库验证失败，尝试从内存验证
+        valid_code = reset_record is not None
+        if not valid_code and 'verification_codes' in globals():
+            code_data = verification_codes.get(request.email)
+            if (code_data and code_data["code"] == request.code and 
+                code_data["type"] == request.type and 
+                code_data["expires_at"] > datetime.utcnow()):
+                valid_code = True
+        
+        if not valid_code:
+            raise HTTPException(status_code=400, detail="验证码无效或已过期")
+        
+        # 验证成功，但不删除验证码，因为后续重置密码还需要验证
+        return {"message": "验证码验证成功"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"验证验证码异常: {e}")
+        raise HTTPException(status_code=500, detail=f"验证验证码失败: {str(e)}")

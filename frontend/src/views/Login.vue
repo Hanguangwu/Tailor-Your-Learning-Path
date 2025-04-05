@@ -22,7 +22,8 @@
     </div>
     <!-- 修改忘记密码对话框 -->
     <el-dialog v-model="forgotPasswordVisible" title="忘记密码" width="30%" class="forgot-password-dialog">
-      <div v-if="!codeSent">
+      <!-- 步骤1: 输入邮箱 -->
+      <div v-if="resetStep === 1">
         <el-form :model="forgotPasswordForm" :rules="forgotPasswordRules" ref="forgotPasswordFormRef">
           <el-form-item prop="email" label="邮箱">
             <el-input v-model="forgotPasswordForm.email" placeholder="请输入注册邮箱"></el-input>
@@ -36,22 +37,38 @@
         </div>
       </div>
 
-      <div v-else>
-        <el-form :model="resetPasswordForm" :rules="resetPasswordRules" ref="resetPasswordFormRef">
+      <!-- 步骤2: 验证验证码 -->
+      <div v-if="resetStep === 2">
+        <el-form :model="verifyCodeForm" :rules="verifyCodeRules" ref="verifyCodeFormRef">
           <el-form-item prop="code" label="验证码">
             <div class="code-container">
-              <el-input v-model="resetPasswordForm.code" placeholder="请输入6位验证码"></el-input>
+              <el-input v-model="verifyCodeForm.code" placeholder="请输入6位验证码"></el-input>
               <el-button type="primary" @click="sendResetCode" :loading="sending" :disabled="isTime" class="resend-btn">
                 {{ isTime ? `${currentTime}s` : '重新发送' }}
               </el-button>
             </div>
           </el-form-item>
+        </el-form>
+        <div class="dialog-footer">
+          <el-button @click="backToEmailStep">返回</el-button>
+          <el-button type="primary" @click="verifyCode" :loading="verifying">
+            验证
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 步骤3: 设置新密码 -->
+      <div v-if="resetStep === 3">
+        <el-form :model="resetPasswordForm" :rules="resetPasswordRules" ref="resetPasswordFormRef">
           <el-form-item prop="newPassword" label="新密码">
             <el-input v-model="resetPasswordForm.newPassword" type="password" placeholder="请输入新密码"></el-input>
           </el-form-item>
+          <el-form-item prop="confirmPassword" label="确认密码">
+            <el-input v-model="resetPasswordForm.confirmPassword" type="password" placeholder="请再次输入新密码"></el-input>
+          </el-form-item>
         </el-form>
         <div class="dialog-footer">
-          <el-button @click="forgotPasswordVisible = false">取消</el-button>
+          <el-button @click="backToVerifyStep">返回</el-button>
           <el-button type="primary" @click="confirmResetPassword" :loading="resetting">
             重置密码
           </el-button>
@@ -64,10 +81,18 @@
 <script>
 import axios from '@/axios'
 
-
 export default {
   name: 'Login',
   data() {
+    // 密码确认验证
+    const validateConfirmPassword = (rule, value, callback) => {
+      if (value !== this.resetPasswordForm.newPassword) {
+        callback(new Error('两次输入的密码不一致'))
+      } else {
+        callback()
+      }
+    }
+    
     return {
       loginForm: {
         username: '',
@@ -76,18 +101,21 @@ export default {
       },
       // 修改忘记密码相关数据
       forgotPasswordVisible: false,
-      codeSent: false,
+      resetStep: 1, // 重置密码步骤：1-输入邮箱, 2-验证验证码, 3-设置新密码
       sending: false,
+      verifying: false,
       resetting: false,
       isTime: false,
       currentTime: 60,
       forgotPasswordForm: {
         email: ''
       },
+      verifyCodeForm: {
+        code: ''
+      },
       resetPasswordForm: {
-        email: '',
-        code: '',
-        newPassword: ''
+        newPassword: '',
+        confirmPassword: ''
       },
       forgotPasswordRules: {
         email: [
@@ -95,14 +123,20 @@ export default {
           { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
         ]
       },
-      resetPasswordRules: {
+      verifyCodeRules: {
         code: [
           { required: true, message: '请输入验证码', trigger: 'blur' },
           { len: 6, message: '验证码长度应为6位', trigger: 'blur' }
-        ],
+        ]
+      },
+      resetPasswordRules: {
         newPassword: [
           { required: true, message: '请输入新密码', trigger: 'blur' },
           { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
+        ],
+        confirmPassword: [
+          { required: true, message: '请确认密码', trigger: 'blur' },
+          { validator: validateConfirmPassword, trigger: 'blur' }
         ]
       }
     }
@@ -129,17 +163,31 @@ export default {
     // 修改忘记密码相关方法
     showForgotPassword() {
       this.forgotPasswordVisible = true
-      this.codeSent = false
+      this.resetStep = 1
       this.isTime = false
       this.currentTime = 60
       this.forgotPasswordForm.email = ''
-      this.resetPasswordForm.code = ''
+      this.verifyCodeForm.code = ''
       this.resetPasswordForm.newPassword = ''
+      this.resetPasswordForm.confirmPassword = ''
+    },
+
+    // 返回邮箱输入步骤
+    backToEmailStep() {
+      this.resetStep = 1
+    },
+
+    // 返回验证码验证步骤
+    backToVerifyStep() {
+      this.resetStep = 2
     },
 
     async sendResetCode() {
       try {
-        await this.$refs.forgotPasswordFormRef.validate()
+        if (this.resetStep === 1) {
+          await this.$refs.forgotPasswordFormRef.validate()
+        }
+        
         this.sending = true
         
         // 设置倒计时
@@ -153,14 +201,17 @@ export default {
           }
         }, 1000)
         
-        // 直接使用 axios 实例，确保路径正确
+        // 发送验证码请求
         const response = await axios.post('/api/auth/send-code', {
           email: this.forgotPasswordForm.email,
           type: 'reset_password'
         })
         
-        this.resetPasswordForm.email = this.forgotPasswordForm.email
-        this.codeSent = true
+        // 如果是第一步，进入第二步
+        if (this.resetStep === 1) {
+          this.resetStep = 2
+        }
+        
         this.$message.success('验证码已发送到您的邮箱')
       } catch (error) {
         console.error('发送验证码错误:', error)
@@ -168,12 +219,66 @@ export default {
       } finally {
         this.sending = false
       }
+    },
+
+    // 验证验证码
+    async verifyCode() {
+      try {
+        await this.$refs.verifyCodeFormRef.validate()
+        this.verifying = true
+        
+        // 发送验证码验证请求
+        const response = await axios.post('/api/auth/verify-code', {
+          email: this.forgotPasswordForm.email,
+          code: this.verifyCodeForm.code,
+          type: 'reset_password'
+        })
+        
+        // 验证成功，进入设置新密码步骤
+        this.resetStep = 3
+        this.$message.success('验证码验证成功')
+      } catch (error) {
+        console.error('验证码验证错误:', error)
+        this.$message.error(error.response?.data?.detail || '验证码验证失败')
+      } finally {
+        this.verifying = false
+      }
+    },
+
+    // 确认重置密码
+    async confirmResetPassword() {
+      try {
+        await this.$refs.resetPasswordFormRef.validate()
+        this.resetting = true
+        
+        // 发送重置密码请求
+        const response = await axios.post('/api/auth/reset-password', {
+          email: this.forgotPasswordForm.email,
+          code: this.verifyCodeForm.code,
+          new_password: this.resetPasswordForm.newPassword
+        })
+        
+        this.$message.success('密码重置成功')
+        this.forgotPasswordVisible = false
+        
+        // 清空表单
+        this.forgotPasswordForm.email = ''
+        this.verifyCodeForm.code = ''
+        this.resetPasswordForm.newPassword = ''
+        this.resetPasswordForm.confirmPassword = ''
+      } catch (error) {
+        console.error('重置密码错误:', error)
+        this.$message.error(error.response?.data?.detail || '重置密码失败')
+      } finally {
+        this.resetting = false
+      }
     }
   }
 }
 </script>
 
 <style scoped>
+/* 样式保持不变 */
 .login-container {
   height: 100vh;
   width: 100vw;
