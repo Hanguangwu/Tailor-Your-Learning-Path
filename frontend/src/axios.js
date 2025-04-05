@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const instance = axios.create({
-    baseURL: import.meta.env.BACKEND_BASE_URL,
+    baseURL: process.env.BACKEND_BASE_URL,
     timeout: 60000,  // 增加超时时间到60秒
     withCredentials: true
 })

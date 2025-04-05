@@ -33,26 +33,24 @@ const routes = [
     path: '/memory-tool',
     name: 'MemoryTool',
     component: () => import('@/views/MemoryTool.vue'),
-    meta: { requiresAuth: true }
+    // meta: { requiresAuth: true }
   },
   {
     path: '/self-test',
     name: 'SelfTest',
     component: () => import('../views/SelfTest.vue'),
-    meta: {
-      requiresAuth: true
-    }
+    // meta: { requiresAuth: true }
   },
   {
     path: '/search',
     name: 'SearchResults',
     component: () => import('@/views/SearchResults.vue'),
-    meta: { requiresAuth: true }
+    // meta: { requiresAuth: true }
   },
   {
     path: '/profile',
     component: () => import('@/views/Profile.vue'),
-    meta: { requiresAuth: true },
+    // meta: { requiresAuth: true },
     children: [
       {
         path: 'courses',
@@ -80,13 +78,13 @@ const routes = [
     path: '/courses/:id',
     name: 'CourseDetail',
     component: () => import('@/views/courses/CourseDetail.vue'),
-    meta: { requiresAuth: true }
+    // meta: { requiresAuth: true }
   },
   {
     path: '/chat',
     name: 'Chat',
     component: () => import('@/views/Chat.vue'),
-    meta: { requiresAuth: true }
+    // meta: { requiresAuth: true }
   },
   {
     path: '/:pathMatch(.*)*',

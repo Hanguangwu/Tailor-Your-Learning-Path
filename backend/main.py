@@ -13,7 +13,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许前端开发服务器的地址
+    allow_origins=[FRONTEND_URL],  # 允许前端开发服务器的地址
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

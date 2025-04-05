@@ -118,6 +118,7 @@ async def register(user: UserCreate):
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # 使用邮箱登录
     user = authenticate_user(form_data.username, form_data.password)  # form_data.username 实际上是邮箱
+    print("执行到auth.py中的login1")
     if not user:
         raise HTTPException(
             status_code=401,
@@ -126,7 +127,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         )
     
     access_token = create_access_token({"sub": str(user["_id"])})
-    
+    print("执行到auth.py中的login2")
     # 确保返回所有需要的用户数据
     user_data = {
         "id": str(user["_id"]),

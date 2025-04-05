@@ -7,6 +7,7 @@ const backendUrl = process.env.BACKEND_BASE_URL || 'http://localhost:3000'
 
 export default defineConfig({
   plugins: [vue()],
+  base: './',
   server: {
     port: 5173,  // 前端使用不同的端口
     proxy: {

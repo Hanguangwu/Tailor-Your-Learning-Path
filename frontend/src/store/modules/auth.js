@@ -25,7 +25,7 @@ const actions = {
       const formDataObj = new FormData()
       formDataObj.append('username', formData.username)  // 后端使用 username 字段接收邮箱
       formDataObj.append('password', formData.password)
-
+      console.log("执行到auth.js中的login1")
       const response = await axios.post('/api/auth/login', formDataObj, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -33,7 +33,7 @@ const actions = {
       })
 
       const { access_token, user } = response.data
-
+      console.log("执行到auth.js中的login2")
       commit('SET_AUTH_DATA', { token: access_token, user })
 
       // 设置 token 过期检查
