@@ -9,6 +9,12 @@ const state = {
     totalPages: 9
   },
   recommendedCourses: [],
+  recommendedMeta: {
+    total: 0,
+    page: 1,
+    pageSize: 6,
+    totalPages: 0
+  },
   searchResults: [],
   searchMeta: {
     total: 0,
@@ -25,12 +31,17 @@ const mutations = {
       total,
       page,
       pageSize: page_size,
-      totalPages: 9
-      //totalPages: total_pages
+      totalPages: total_pages
     }
   },
-  SET_RECOMMENDED_COURSES(state, courses) {
+  SET_RECOMMENDED_COURSES(state, { courses, total, page, page_size, total_pages }) {
     state.recommendedCourses = courses
+    state.recommendedMeta = {
+      total,
+      page,
+      pageSize: page_size,
+      totalPages: total_pages
+    }
   },
   SET_SEARCH_RESULTS(state, { courses, total, page, page_size, total_pages }) {
     state.searchResults = courses
@@ -133,11 +144,24 @@ const actions = {
     }
   },
 
-  async fetchRecommendedCourses({ commit }) {
+  async fetchRecommendedCourses({ commit }, { page = 1 } = {}) {
     try {
-      const response = await axios.get('/api/courses/recommended')
-      if (response.data && response.data.length > 0) {
-        commit('SET_RECOMMENDED_COURSES', response.data)
+      const response = await axios.get('/api/courses/recommended', {
+        params: {
+          page,
+          page_size: 6
+        }
+      })
+
+      if (response.data) {
+        commit('SET_RECOMMENDED_COURSES', {
+          courses: response.data.courses,
+          total: response.data.total,
+          page: response.data.page,
+          page_size: response.data.page_size,
+          total_pages: 9
+          //total_pages: response.data.total_pages
+        })
       } else {
         console.warn('没有推荐课程')
       }

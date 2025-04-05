@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-50 pt-16">
+  <div class="min-h-screen bg-gray-50 pt-24"> <!-- 将 pt-16 修改为 pt-24 以避免遮挡 -->
     <!-- 顶部标题 -->
-    <div class="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
+    <div class="bg-white shadow-md z-10 mb-6"> <!-- 移除 fixed 属性 -->
       <div class="container mx-auto py-4">
-        <h2 class="text-2xl font-bold text-center text-indigo-600">背个X啊</h2>
+        <h2 class="text-2xl font-bold text-center text-indigo-600">记忆工具——背个X啊</h2>
       </div>
     </div>
 
@@ -58,7 +58,7 @@
           </button>
           <button @click="processText('english')" 
             class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors">
-            英语
+            英文句子
           </button>
           <button @click="processText('japanese')" 
             class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors">
@@ -66,7 +66,7 @@
           </button>
           <button @click="processText('word')" 
             class="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-md transition-colors">
-            单词
+            英文单词
           </button>
           <button @click="loadHistory" 
             class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md transition-colors">
@@ -161,6 +161,16 @@
         {{ processedText }}
       </div>
     </div>
+
+    <!-- 使用方法和效果说明 -->
+    <div class="bg-gray-100 py-8">
+      <div class="container mx-auto px-4">
+        <h3 class="text-xl font-bold text-center text-indigo-600 mb-4">使用方法和效果</h3>
+        <p class="text-gray-700 text-center">
+          记忆工具通过间隔重复回想策略，帮助学习者巩固所学知识，提高学习效率。用户可以选择不同的语言模式和间隔设置，生成适合自己的记忆文本。通过定期使用该工具，可以显著提升信息的长期记忆效果。
+        </p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -182,14 +192,6 @@ export default {
       currentMode: 'chinese' // 默认中文模式
     }
   },
-  // created() {
-  //   // 检查用户是否已登录
-  //   const token = localStorage.getItem('token')
-  //   if (!token) {
-  //     ElMessage.warning('请先登录')
-  //     this.$router.push('/login')
-  //   }
-  // },
   computed: {
     ...mapGetters('documents', [
       'allDocuments',
@@ -324,23 +326,21 @@ export default {
         return
       }
 
-      // 确保用户已经登录  
-    const token = this.$store.state.auth.token;  
-    if (!token) {  
-        ElMessage.warning('请先登录');  
-        return;  
-    }  
-      
+      const token = this.$store.state.auth.token
+      if (!token) {  
+        ElMessage.warning('请先登录')
+        return
+      }  
+          
       try {
-        //console.log("保存文档开始，文档内容是：", this.text)
-        await this.$store.dispatch('documents/saveDocument', { 
+        const response = await this.$store.dispatch('documents/saveDocument', { 
           text: this.text,
           createdAt: new Date()
         })
         ElMessage.success('文档保存成功')
       } catch (error) {
         console.error('保存文档失败:', error)
-        ElMessage.error('保存失败，请稍后重试')
+        ElMessage.error(error.response?.data?.detail || '保存失败，请稍后重试')
       }
     },
     

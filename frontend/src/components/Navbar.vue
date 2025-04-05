@@ -9,28 +9,15 @@
             量身学程
           </router-link>
 
-          <!-- 导航链接 -->
+          
           <div class="hidden md:flex items-center space-x-8">
-            <!-- 课程下拉菜单 -->
-            <div class="relative group">
-              <button class="flex items-center text-gray-700 hover:text-indigo-600">
-                所有课程
-                <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <!-- 下拉内容 -->
-              <div class="absolute hidden group-hover:block w-48 bg-white shadow-lg rounded-md mt-2">
-                <div class="py-2">
-                  <router-link to="/courses?category=platform" class="block px-4 py-2 text-gray-700 hover:bg-indigo-50">
-                    平台课程
-                  </router-link>
-                  <router-link to="/courses?category=category" class="block px-4 py-2 text-gray-700 hover:bg-indigo-50">
-                    分类课程
-                  </router-link>
-                </div>
-              </div>
-            </div>
+            <router-link to="/courses" class="text-gray-700 hover:text-indigo-600">
+              全部课程
+            </router-link>
+
+            <router-link to="/websites" class="text-gray-700 hover:text-indigo-600">
+              资源网站
+            </router-link>
 
             <router-link to="/chat" class="text-gray-700 hover:text-indigo-600">
               AI聊天
@@ -78,6 +65,24 @@
               <div v-show="showDropdown"
                 class="absolute right-0 w-48 bg-white shadow-lg rounded-md mt-2 py-2 transition-all duration-200"
                 @mouseenter="clearHideTimer" @mouseleave="hideDropdown">
+                <router-link to="/profile/personal-info" class="block px-4 py-2 text-gray-700 hover:bg-indigo-50"
+                  @click="showDropdown = false">
+                  个人中心
+                </router-link>
+                <router-link to="/personal-trait" class="block px-4 py-2 text-gray-700 hover:bg-indigo-50"
+                  @click="showDropdown = false">
+                  学习偏好设置
+                </router-link>
+                <router-link to="/learning-path" class="block px-4 py-2 text-gray-700 hover:text-indigo-600">
+                  学习路径
+                </router-link>
+                <button @click="handleLogout" class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50">
+                  退出登录
+                </button>
+              </div>
+              <!-- <div v-show="showDropdown"
+                class="absolute right-0 w-48 bg-white shadow-lg rounded-md mt-2 py-2 transition-all duration-200"
+                @mouseenter="clearHideTimer" @mouseleave="hideDropdown">
                 <router-link to="/profile/courses" class="block px-4 py-2 text-gray-700 hover:bg-indigo-50"
                   @click="showDropdown = false">
                   个人中心
@@ -85,7 +90,7 @@
                 <button @click="handleLogout" class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50">
                   退出登录
                 </button>
-              </div>
+              </div> -->
             </div>
           </template>
         </div>
@@ -113,7 +118,7 @@ export default {
 
     const isLoggedIn = computed(() => store.state.auth.token !== null)
     const username = computed(() => isLoggedIn.value ? store.state.auth.user?.username || '' : '')  // 确保未登录时不显示用户名
-
+  
     const hideDropdown = () => {
       hideTimer.value = setTimeout(() => {
         showDropdown.value = false
@@ -183,7 +188,7 @@ export default {
     })
 
     return {
-      isLoggedIn,
+      isLoggedIn: computed(() => store.getters['auth/isLoggedIn']),
       username,
       showDropdown,
       handleSearch,
@@ -199,5 +204,30 @@ export default {
 .transition-all {
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 添加额外的样式来改善下拉菜单的交互体验 */
+.group:hover .group-hover\:visible {
+  visibility: visible;
+}
+
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1;
+}
+
+.group\/platform:hover .group-hover\/platform\:visible {
+  visibility: visible;
+}
+
+.group\/platform:hover .group-hover\/platform\:opacity-100 {
+  opacity: 1;
+}
+
+.group\/category:hover .group-hover\/category\:visible {
+  visibility: visible;
+}
+
+.group\/category:hover .group-hover\/category\:opacity-100 {
+  opacity: 1;
 }
 </style>

@@ -12,10 +12,6 @@
       <!-- 搜索和标题部分 -->
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold">已选课程 ({{ courses.length }})</h2>
-        <!-- <div class="flex space-x-4">
-          <input v-model="searchQuery" type="text" placeholder="搜索课程..."
-            class="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-        </div> -->
       </div>
 
       <!-- 课程列表 -->
@@ -28,7 +24,7 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">课程简介</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分类</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">难度</th>
-              <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th> -->
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平台</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
             </tr>
           </thead>
@@ -63,12 +59,9 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {{ course.difficulty }}
               </td>
-              <!-- <td class="px-6 py-4 whitespace-nowrap">
-                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                  :class="course.status === '已完成' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'">
-                  {{ course.status }}
-                </span>
-              </td> -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ course.platform }}
+              </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button @click="viewCourseDetail(course._id)" class="text-indigo-600 hover:text-indigo-900 mr-3">
                   查看详情
@@ -152,7 +145,8 @@ export default {
           type: 'warning'
         })
 
-        await store.dispatch('courses/unselectCourse', courseId)
+        // 修改这里：使用 profile 模块的 action
+        await store.dispatch('profile/unselectCourse', courseId)
         ElMessage.success('退选成功')
         await fetchCourses()  // 重新获取课程列表
       } catch (error) {

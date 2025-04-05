@@ -24,12 +24,27 @@
 
             <!-- 推荐课程 -->
             <div class="mb-8">
-                <h2 class="text-2xl font-bold mb-4">为您推荐</h2>
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    <CourseCard v-for="course in recommendedCourses" :key="course._id" :course="course"
-                        @select="selectCourse" />
-                </div>
-            </div>
+    <h2 class="text-2xl font-bold mb-4">为您推荐</h2>
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <CourseCard v-for="course in recommendedCourses" :key="course._id" :course="course"
+            @select="selectCourse" />
+    </div>
+    
+    <!-- 添加推荐课程的分页控件 -->
+    <div class="flex justify-center mt-6" v-if="recommendedMeta.totalPages > 1">
+        <nav class="flex items-center space-x-2">
+            <button v-for="page in recommendedMeta.totalPages" :key="page"
+                @click="handleRecommendedPageChange(page)" :class="[
+                'px-4 py-2 rounded-md',
+                page === recommendedMeta.page
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+            ]">
+                {{ page }}
+            </button>
+        </nav>
+    </div>
+</div>
 
             <!-- 在精选课程部分添加分页控件 -->
             <div class="mb-8">
@@ -78,14 +93,16 @@ export default {
         const user = computed(() => store.state.auth.user)
         const featuredCourses = computed(() => store.state.courses.featuredCourses)
         const featuredMeta = computed(() => store.state.courses.featuredMeta)
-        const recommendedCourses = computed(() => store.state.courses.recommendedCourses)  // 确保推荐课程数据正确获取
+        // 获取推荐课程状态
+        const recommendedCourses = computed(() => store.state.courses.recommendedCourses)
+        const recommendedMeta = computed(() => store.state.courses.recommendedMeta)
 
         onMounted(async () => {
             if (store.state.auth.token) {
                 try {
                     await Promise.all([
                         store.dispatch('courses/fetchFeaturedCourses'),
-                        store.dispatch('courses/fetchRecommendedCourses')  // 确保推荐课程数据被正确加载
+                        await store.dispatch('courses/fetchRecommendedCourses', { page: 1 })
                     ])
                 } catch (error) {
                     console.error('加载课程失败:', error)
@@ -99,6 +116,15 @@ export default {
                 window.scrollTo({ top: 0, behavior: 'smooth' })
             } catch (error) {
                 console.error('加载精选课程失败:', error)
+            }
+        }
+
+        const handleRecommendedPageChange = async (page) => {
+            try {
+                await store.dispatch('courses/fetchRecommendedCourses', { page })
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+            } catch (error) {
+                console.error('加载推荐课程失败:', error)
             }
         }
 
@@ -131,10 +157,12 @@ export default {
             featuredCourses,
             featuredMeta,
             recommendedCourses,  // 确保推荐课程数据被正确返回
+            recommendedMeta,
             //handleSearch,
             selectCourse,
             handleLogout,
-            handleFeaturedPageChange
+            handleFeaturedPageChange,
+            handleRecommendedPageChange
         }
     }
 }

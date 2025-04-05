@@ -5,32 +5,33 @@
       <div class="col-span-3">
         <div class="bg-white shadow rounded-lg p-4">
           <nav class="space-y-2">
-            <router-link 
-              to="/profile/courses" 
+            <router-link to="/profile/selected-courses"
               class="block px-4 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600"
-              :class="{ 'bg-indigo-50 text-indigo-600': $route.path === '/profile/courses' }"
-            >
+              :class="{ 'bg-indigo-50 text-indigo-600': $route.path === '/profile/selected-courses' }">
               已选课程
             </router-link>
-            <router-link 
-              to="/profile/interests" 
+            <router-link to="/profile/interests"
               class="block px-4 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600"
-              :class="{ 'bg-indigo-50 text-indigo-600': $route.path === '/profile/interests' }"
-            >
+              :class="{ 'bg-indigo-50 text-indigo-600': $route.path === '/profile/interests' }">
               兴趣管理
             </router-link>
-            <router-link 
-              to="/profile/learning-path" 
-              class="block px-4 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600"
-              :class="{ 'bg-indigo-50 text-indigo-600': $route.path === '/profile/learning-path' }"
-            >
-              学习路径
+            <router-link to="/profile/todo" class="block px-4 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600"
+              :class="{ 'bg-indigo-50 text-indigo-600': $route.path === '/profile/todo' }">
+              待办事项
             </router-link>
-            <router-link 
-              to="/profile/settings" 
+            <router-link to="/profile/achievement-diary"
               class="block px-4 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600"
-              :class="{ 'bg-indigo-50 text-indigo-600': $route.path === '/profile/settings' }"
-            >
+              :class="{ 'bg-indigo-50 text-indigo-600': $route.path === '/profile/achievement-diary' }">
+              成就日记
+            </router-link>
+            <router-link to="/profile/learning-pbl"
+              class="block px-4 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600"
+              :class="{ 'bg-indigo-50 text-indigo-600': $route.path === '/profile/learning-pbl' }">
+              成就排行榜
+            </router-link>
+            <router-link to="/profile/settings"
+              class="block px-4 py-2 rounded-md hover:bg-indigo-50 hover:text-indigo-600"
+              :class="{ 'bg-indigo-50 text-indigo-600': $route.path === '/profile/settings' }">
               个人设置
             </router-link>
           </nav>
@@ -56,19 +57,18 @@ export default {
     const store = useStore()
     const router = useRouter()
     const isLoading = ref(true)
-    const selectedCourses = ref([])
 
-    const user = computed(() => store.getters['auth/currentUser'])
+    // 使用统一的用户信息获取方法
+    const user = computed(() => store.state.auth.user)
+    const userProfile = computed(() => store.state.auth.userProfile)
 
     onMounted(async () => {
       try {
+        // 使用统一的用户资料获取方法
         await store.dispatch('auth/getUserProfile')
-        // 这里应该有一个获取用户已选课程的API调用
-        // 暂时使用空数组
-        selectedCourses.value = []
         isLoading.value = false
       } catch (error) {
-        console.error('Failed to load profile:', error)
+        console.error('加载个人资料失败:', error)
         isLoading.value = false
       }
     })
@@ -84,8 +84,8 @@ export default {
 
     return {
       user,
+      userProfile,
       isLoading,
-      selectedCourses,
       viewCourse,
       logout
     }

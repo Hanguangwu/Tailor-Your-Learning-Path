@@ -1,6 +1,16 @@
 <template>
   <div class="container mx-auto px-4 py-8 mt-16">
-    <h1 class="text-2xl font-bold mb-6">知识自测</h1>
+    <!-- <h1 class="text-2xl font-bold mb-6">知识自测</h1> -->
+    <div class="py-16 bg-gradient-to-r from-indigo-600 to-blue-500">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center text-white">
+      <h1 class="text-4xl font-bold mb-4">知识自测</h1>
+      <p class="text-xl max-w-3xl mx-auto">
+        通过自测提升学习效果，及时发现知识盲点
+      </p>
+    </div>
+  </div>
+</div>
     
     <!-- 文档输入区域 -->
     <div v-if="!questions.length" class="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -67,6 +77,19 @@
       </div>
     </div>
   </div>
+  <div class="bg-gray-100 py-8 mt-8">
+  <div class="container mx-auto px-4">
+    <h3 class="text-xl font-bold text-center text-indigo-600 mb-4">使用方法和效果</h3>
+    <div class="max-w-3xl mx-auto">
+      <p class="text-gray-700 text-center mb-4">
+        自测是一种经过科学验证的有效学习策略。通过主动回忆和测试，可以帮助加强记忆效果，提高对所学知识的理解和应用能力。定期进行自测不仅能帮助发现学习中的薄弱环节，还能及时调整学习计划，提高学习效率。
+      </p>
+      <p class="text-gray-700 text-center">
+        建议在完成学习后立即进行自测，并定期复习测试，这样可以最大程度地巩固所学知识，提升学习效果。
+      </p>
+    </div>
+  </div>
+</div>
 </template>
 
 <script>

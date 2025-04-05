@@ -17,7 +17,8 @@ class ChatRequest(BaseModel):
 # 初始化 OpenAI 客户端
 client = OpenAI(
     api_key=os.getenv("CHATANYWHERE_API_KEY"),
-    base_url=f"{os.getenv('CHATANYWHERE_URL')}/v1"
+    #base_url="https://api.chatanywhere.tech/v1"
+    base_url=os.getenv("CHATANYWHERE_BASE_URL")  # 确保环境变量正确设置
 )
 
 class ChatRecord(BaseModel):
@@ -39,9 +40,8 @@ async def chat(request: ChatRequest, current_user: str = Depends(get_current_use
             model=request.model,
             messages=[{"role": "user", "content": request.message}],
             temperature=0.7,
-            max_tokens=1000
+            max_tokens=2000
         )
-        #print("response:", response)
         
         response_text = response.choices[0].message.content
         response_time = datetime.now()
@@ -55,8 +55,7 @@ async def chat(request: ChatRequest, current_user: str = Depends(get_current_use
             response=response_text,
             response_time=response_time
         )
-        #print("chat_record:", chat_record)
-        db.chats.insert_one(chat_record.dict())  # 去掉 await
+        db.chats.insert_one(chat_record.dict())  # 确保数据库连接正常
 
         return {"response": response_text, "response_time": response_time}
     except Exception as e:

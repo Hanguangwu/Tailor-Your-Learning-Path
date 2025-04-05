@@ -4,8 +4,7 @@
     <div class="relative">
       <!-- 背景图片部分保持不变 -->
       <div class="absolute inset-0">
-        <img src="@/assets/loolapalloza.jpg" alt="Background"
-          class="w-full h-screen object-cover filter brightness-50">
+        <img src="@/assets/loolapalloza.jpg" alt="Background" class="w-full h-screen object-cover filter brightness-50">
       </div>
 
       <!-- 更新内容层 -->
@@ -15,9 +14,9 @@
           <span class="block text-4xl mt-2">为每个学习者定制学习体验</span>
         </h1>
         <p class="text-xl mb-8 text-center max-w-2xl">
-          基于AI驱动的学习平台，根据学习者的风格提供个性化课程、推荐和评估，满足每个人的独特需求。
+          基于AI驱动的学习平台，利用大语言模型智能助手提供个性化课程推荐、作业辅导和资源网站导航，满足每个人的独特需求。
         </p>
-        
+
         <!-- 添加特点列表 -->
         <ul class="flex flex-wrap justify-center gap-6 mb-8">
           <li class="flex items-center">
@@ -51,32 +50,46 @@
     <div class="bg-white py-16">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-3xl font-bold text-center mb-12">为什么选择个性化学习平台？</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <div class="p-6 bg-gray-50 rounded-lg">
             <h3 class="text-xl font-semibold mb-4">个性化课程推荐</h3>
             <p class="text-gray-600">
               基于AI的智能推荐系统，根据用户行为、兴趣和职业目标推荐合适的课程。通过追踪学习记录和模式，为学习者规划从入门到进阶的学习路径。
             </p>
           </div>
-          
+
           <div class="p-6 bg-gray-50 rounded-lg">
             <h3 class="text-xl font-semibold mb-4">AI学习助手</h3>
             <p class="text-gray-600">
               集成智能学习助手，帮助用户查找课程、解答问题、提供持续学习支持。基于学习历史与用户互动，提供个性化建议和资源。
             </p>
           </div>
-          
+
           <div class="p-6 bg-gray-50 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4">互动学习工具</h3>
+            <h3 class="text-xl font-semibold mb-4">资源网站导航</h3>
             <p class="text-gray-600">
-              通过游戏化测验、实时模拟和多媒体内容提供互动学习体验。包括视频、信息图表和实践练习，提高学习效果，简化复杂概念的理解。
+              提供全面的资源网站导航，帮助学习者快速找到所需的学习材料和工具。通过精心筛选和分类，确保每个资源的质量和实用性。
             </p>
           </div>
-          
+
           <div class="p-6 bg-gray-50 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4">个性化评估</h3>
+            <h3 class="text-xl font-semibold mb-4">记忆强化工具</h3>
             <p class="text-gray-600">
-              根据学习者的进度和表现提供定制化的评估方案，帮助及时发现和改进学习中的问题，确保学习效果。
+              采用间隔重复回想策略，通过科学的时间间隔设置和主动回想练习，帮助学习者显著提高记忆的长期保持效果，使学习更加高效。
+            </p>
+          </div>
+
+          <div class="p-6 bg-gray-50 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4">智能自测系统</h3>
+            <p class="text-gray-600">
+              提供多样化的自测工具，帮助学习者及时发现知识盲点，评估学习效果。通过即时反馈和个性化建议，指导学习者调整学习策略。
+            </p>
+          </div>
+
+          <div class="p-6 bg-gray-50 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4">游戏化PBL系统</h3>
+            <p class="text-gray-600">
+              结合游戏元素与项目导向学习，通过积分、等级和成就系统激励学习。在趣味化的学习环境中培养问题解决能力和团队协作精神。
             </p>
           </div>
         </div>

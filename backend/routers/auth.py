@@ -9,10 +9,12 @@ import os
 from dotenv import load_dotenv
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 import random
 import string
-
+import sys
+sys.path.append("..")
+from utils.email import generate_verification_code, send_reset_password_email
 # 确保在文件开头加载环境变量
 load_dotenv()
 
@@ -26,6 +28,21 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 SECRET_KEY = os.getenv("SECRET_KEY", "1234567890987654321")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
+# 确保 reset_codes 集合存在
+try:
+    # 检查集合是否存在
+    collections = db.list_collection_names()
+    if "reset_codes" not in collections:
+        # 创建 reset_codes 集合
+        db.create_collection("reset_codes")
+        # 创建过期索引，使验证码在过期时间后自动删除
+        db.reset_codes.create_index([("expires_at", 1)], expireAfterSeconds=0)
+        print("已创建 reset_codes 集合和过期索引")
+except Exception as e:
+    print(f"创建 reset_codes 集合时出错: {e}")
+    # 创建一个内存存储作为备用
+    verification_codes = {}
 
 # 数据模型定义
 class UserCreate(BaseModel):
@@ -41,6 +58,19 @@ class LoginData(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordConfirm(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+class SendCodeRequest(BaseModel):
+    email: EmailStr
+    type: str
+
 
 # 密码处理函数
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -103,6 +133,10 @@ async def register(user: UserCreate):
         "password": get_password_hash(user.password),
         "interests": user.interests,
         "selected_courses": [],
+        "points": 0,            # 积分
+        "badges": [],           # 成就
+        "profile_completed": False,  # 个人资料完善状态
+        "comments_count": 0,    # 评论数
         "created_at": datetime.utcnow()
     }
     
@@ -118,7 +152,6 @@ async def register(user: UserCreate):
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # 使用邮箱登录
     user = authenticate_user(form_data.username, form_data.password)  # form_data.username 实际上是邮箱
-    print("执行到auth.py中的login1")
     if not user:
         raise HTTPException(
             status_code=401,
@@ -127,7 +160,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         )
     
     access_token = create_access_token({"sub": str(user["_id"])})
-    print("执行到auth.py中的login2")
+    
     # 确保返回所有需要的用户数据
     user_data = {
         "id": str(user["_id"]),
@@ -143,54 +176,163 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "user": user_data
     }
 
-class ResetPasswordRequest(BaseModel):
-    email: EmailStr
-
-class ResetPasswordConfirm(BaseModel):
-    email: EmailStr
-    code: str
-    new_password: str
-
-# 生成验证码
-def generate_verification_code():
-    return ''.join(random.choices(string.digits, k=6))
+@router.post("/send-code")
+async def send_verification_code(request: SendCodeRequest, background_tasks: BackgroundTasks):
+    """发送验证码"""
+    try:
+        # 验证邮箱是否存在（针对重置密码）
+        if request.type == "reset_password":
+            #print("request:", request)
+            user = db.users.find_one({"email": request.email})
+            #print("user:", user)
+            if user == None:
+                raise HTTPException(status_code=404, detail="该邮箱未注册")
+        
+        # 生成验证码
+        code = generate_verification_code()
+        #print("生成的验证码:", code)
+        
+        # 存储验证码并设置10分钟过期时间
+        try:
+            db.reset_codes.insert_one({
+                "email": request.email,
+                "code": code,
+                "type": request.type,
+                "created_at": datetime.utcnow(),
+                "expires_at": datetime.utcnow() + timedelta(minutes=10)
+            })
+        except Exception as db_error:
+            print(f"存储验证码到数据库失败: {db_error}")
+            # 使用内存存储作为备用
+            if 'verification_codes' not in globals():
+                global verification_codes
+                verification_codes = {}
+            
+            verification_codes[request.email] = {
+                "code": code,
+                "type": request.type,
+                "expires_at": datetime.utcnow() + timedelta(minutes=10)
+            }
+            print(f"验证码已存储在内存中: {verification_codes}")
+        
+        # 在后台任务中发送邮件
+        def send_email_task():
+            try:
+                success = send_reset_password_email(request.email, code)
+                if not success:
+                    print(f"发送邮件到 {request.email} 失败")
+            except Exception as e:
+                print(f"发送邮件异常: {e}")
+        
+        background_tasks.add_task(send_email_task)
+        
+        return {"message": "验证码已发送"}
+    except Exception as e:
+        print(f"发送验证码异常: {e}")
+        raise HTTPException(status_code=500, detail=f"发送验证码失败: {str(e)}")
 
 @router.post("/forgot-password")
 async def forgot_password(request: ResetPasswordRequest, background_tasks: BackgroundTasks):
-    user = db.users.find_one({"email": request.email})
-    if not user:
-        raise HTTPException(status_code=404, detail="该邮箱未注册")
-    
-    code = generate_verification_code()
-    # 存储验证码（实际项目中应该设置过期时间）
-    db.reset_codes.insert_one({
-        "email": request.email,
-        "code": code,
-        "created_at": datetime.utcnow()
-    })
-    
-    # TODO: 发送邮件的具体实现
-    return {"message": "重置密码邮件已发送"}
+    """发送重置密码验证码（保留原有接口兼容性）"""
+    try:
+        # 验证邮箱是否存在
+        user = db.users.find_one({"email": request.email})
+        if not user:
+            raise HTTPException(status_code=404, detail="该邮箱未注册")
+        
+        # 生成验证码
+        code = generate_verification_code()
+        print("生成的验证码:", code)
+        
+        # 存储验证码并设置10分钟过期时间
+        try:
+            db.reset_codes.insert_one({
+                "email": request.email,
+                "code": code,
+                "type": "reset_password",
+                "created_at": datetime.utcnow(),
+                "expires_at": datetime.utcnow() + timedelta(minutes=10)
+            })
+        except Exception as db_error:
+            print(f"存储验证码到数据库失败: {db_error}")
+            # 使用内存存储作为备用
+            if 'verification_codes' not in globals():
+                global verification_codes
+                verification_codes = {}
+            
+            verification_codes[request.email] = {
+                "code": code,
+                "type": "reset_password",
+                "expires_at": datetime.utcnow() + timedelta(minutes=10)
+            }
+            print(f"验证码已存储在内存中: {verification_codes}")
+        
+        # 在后台任务中发送邮件
+        def send_email_task():
+            try:
+                success = send_reset_password_email(request.email, code)
+                if not success:
+                    print(f"发送邮件到 {request.email} 失败")
+            except Exception as e:
+                print(f"发送邮件异常: {e}")
+        
+        background_tasks.add_task(send_email_task)
+        
+        return {"message": "重置密码邮件已发送"}
+    except Exception as e:
+        print(f"发送验证码异常: {e}")
+        raise HTTPException(status_code=500, detail=f"发送重置密码邮件失败: {str(e)}")
 
 @router.post("/reset-password")
 async def reset_password(request: ResetPasswordConfirm):
-    # 验证码验证
-    reset_record = db.reset_codes.find_one({
-        "email": request.email,
-        "code": request.code
-    })
-    
-    if not reset_record:
-        raise HTTPException(status_code=400, detail="验证码无效")
-    
-    # 更新密码
-    hashed_password = get_password_hash(request.new_password)
-    db.users.update_one(
-        {"email": request.email},
-        {"$set": {"password": hashed_password}}
-    )
-    
-    # 删除验证码
-    db.reset_codes.delete_one({"_id": reset_record["_id"]})
-    
-    return {"message": "密码重置成功"}
+    """重置密码"""
+    try:
+        # 首先尝试从数据库验证
+        reset_record = None
+        try:
+            reset_record = db.reset_codes.find_one({
+                "email": request.email,
+                "code": request.code,
+                "type": "reset_password",
+                "expires_at": {"$gt": datetime.utcnow()}  # 确保验证码未过期
+            })
+        except Exception as db_error:
+            print(f"从数据库验证验证码失败: {db_error}")
+        
+        # 如果数据库验证失败，尝试从内存验证
+        valid_code = reset_record is not None
+        if not valid_code and 'verification_codes' in globals():
+            code_data = verification_codes.get(request.email)
+            if (code_data and code_data["code"] == request.code and 
+                code_data["type"] == "reset_password" and 
+                code_data["expires_at"] > datetime.utcnow()):
+                valid_code = True
+                # 从内存中删除验证码
+                del verification_codes[request.email]
+        
+        if not valid_code:
+            raise HTTPException(status_code=400, detail="验证码无效或已过期")
+        
+        # 更新密码
+        hashed_password = get_password_hash(request.new_password)
+        result = db.users.update_one(
+            {"email": request.email},
+            {"$set": {"password": hashed_password}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        
+        # 如果使用的是数据库验证码，删除它
+        if reset_record:
+            try:
+                db.reset_codes.delete_one({"_id": reset_record["_id"]})
+            except Exception as db_error:
+                print(f"删除数据库验证码失败: {db_error}")
+        
+        return {"message": "密码重置成功"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"重置密码异常: {e}")
+        raise HTTPException(status_code=500, detail=f"重置密码失败: {str(e)}")

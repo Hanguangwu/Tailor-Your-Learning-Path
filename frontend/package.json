@@ -8,10 +8,12 @@
     "serve": "vite preview"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "axios": "^1.8.1",
     "core-js": "^3.8.3",
     "jwt-decode": "^4.0.0",
     "marked": "^15.0.7",
+    "nodemailer": "^6.10.0",
     "swiper": "^11.2.5",
     "vue": "^3.5.13",
     "vue-router": "^4.0.13",
@@ -45,9 +47,6 @@
     "vite-plugin-html": "^3.2.2",
     "vite-plugin-svg-icons": "^2.0.1",
     "vue-template-compiler": "^2.7.16"
-  },
-  "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "4.9.5"
   },
   "eslintConfig": {
     "root": true,

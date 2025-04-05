@@ -155,6 +155,26 @@ export default {
       selectKey.value += 1
     }
 
+    const scrollToBottom = async () => {
+      await nextTick()
+      if (chatContainer.value) {
+        chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+      }
+    }
+
+    const resetGPT4Usage = () => {
+      const now = new Date()
+      const tomorrow = new Date(now)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      tomorrow.setHours(0, 0, 0, 0)
+
+      const timeUntilReset = tomorrow - now
+      setTimeout(() => {
+        gpt4UsageCount.value = 0
+        resetGPT4Usage()
+      }, timeUntilReset)
+    }
+
     const sendMessage = async () => {
       if (loading.value || !userInput.value.trim()) return
 
@@ -197,25 +217,7 @@ export default {
       }
     }
 
-    const scrollToBottom = async () => {
-      await nextTick()
-      if (chatContainer.value) {
-        chatContainer.value.scrollTop = chatContainer.value.scrollHeight
-      }
-    }
-
-    const resetGPT4Usage = () => {
-      const now = new Date()
-      const tomorrow = new Date(now)
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      tomorrow.setHours(0, 0, 0, 0)
-
-      const timeUntilReset = tomorrow - now
-      setTimeout(() => {
-        gpt4UsageCount.value = 0
-        resetGPT4Usage()
-      }, timeUntilReset)
-    }
+    
 
     onMounted(() => {
       userInput.value = ''

@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from database import db
 from .auth import get_current_user, verify_password, get_password_hash
+from datetime import datetime
 
 router = APIRouter()
 
@@ -17,6 +18,31 @@ class UpdateProfileModel(BaseModel):
 class InterestModel(BaseModel):
     interest: str
 
+# 成就模型
+class Badge(BaseModel):
+    badgeId: str
+    earnedAt: str
+
+class UserAchievements(BaseModel):
+    points: int
+    badges: List[Badge]
+
+class LeaderboardUser(BaseModel):
+    id: str
+    username: str
+    points: int
+    badgeCount: int
+
+# Todo模型
+class Todo(BaseModel):
+    content: str
+    completed: bool = False
+
+# 成就日记模型
+class AchievementDiary(BaseModel):
+    title: str
+    content: str
+    tags: List[str] = []
 
 # API路由
 
@@ -53,9 +79,6 @@ async def get_selected_courses(current_user: str = Depends(get_current_user)):
         selected_course_ids = [ObjectId(id) for id in user.get("selected_courses", [])]
         if not selected_course_ids:
             return {"courses": [], "total": 0}
-        
-        # 获取课程进度信息
-        course_progress = user.get("course_progress", {})
             
         # 联合查询课程信息
         courses = list(db.courses.find({"_id": {"$in": selected_course_ids}}))
@@ -73,7 +96,7 @@ async def get_selected_courses(current_user: str = Depends(get_current_user)):
                 "difficulty": course.get("difficulty", ""),
                 "rating": course.get("rating", 0),
                 "enrollment_count": course.get("enrollment_count", 0),
-                "status": course_progress.get(course_id, "进行中")
+                "platform": course.get("platform", "其他")
             }
             processed_courses.append(processed_course)
             
@@ -84,81 +107,6 @@ async def get_selected_courses(current_user: str = Depends(get_current_user)):
     except Exception as e:
         print(f"Error in get_selected_courses: {str(e)}")  # 添加调试日志
         raise HTTPException(status_code=500, detail=str(e))
-"""
-@router.get("/selected-courses")
-async def get_selected_courses(current_user: str = Depends(get_current_user)):
-    try:
-        user = db.users.find_one({"_id": ObjectId(current_user)})
-        if not user:
-            raise HTTPException(status_code=404, detail="用户不存在")
-            
-        selected_course_ids = user.get("selected_courses", [])
-        if not selected_course_ids:
-            return {"courses": [], "total": 0}
-            
-        courses = list(db.courses.find({"_id": {"$in": selected_course_ids}}))
-        processed_courses = []
-        
-        for course in courses:
-            processed_course = {
-                "_id": str(course["_id"]),
-                "course_name": course.get("course_name", ""),
-                "description": course.get("description", ""),
-                "course_url": course.get("course_url", ""),
-                "course_logo_url": course.get("course_logo_url", ""),
-                "category": course.get("category", ""),
-                "difficulty": course.get("difficulty", ""),
-                "rating": course.get("rating", 0),
-                "enrollment_count": course.get("enrollment_count", 0)
-            }
-            processed_courses.append(processed_course)
-            
-        return {
-            "courses": processed_courses,
-            "total": len(processed_courses)
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-"""
-
-"""
-@router.get("/interests")
-async def get_interests(current_user: str = Depends(get_current_user)):
-    try:
-        user = db.users.find_one({"_id": ObjectId(current_user)})
-        if not user:
-            raise HTTPException(status_code=404, detail="用户不存在")
-        return {"interests": user.get("interests", [])}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/interests")
-async def add_interest(interest_data: InterestUpdate, current_user: str = Depends(get_current_user)):
-    try:
-        result = db.users.update_one(
-            {"_id": ObjectId(current_user)},
-            {"$addToSet": {"interests": interest_data.interest}}
-        )
-        if result.modified_count == 0:
-            raise HTTPException(status_code=400, detail="添加兴趣失败")
-        return {"message": "兴趣添加成功"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.delete("/interests/{interest}")
-async def remove_interest(interest: str, current_user: str = Depends(get_current_user)):
-    try:
-        result = db.users.update_one(
-            {"_id": ObjectId(current_user)},
-            {"$pull": {"interests": interest}}
-        )
-        if result.modified_count == 0:
-            raise HTTPException(status_code=400, detail="删除兴趣失败")
-        return {"message": "兴趣删除成功"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-"""
 
 @router.get("/interests")
 async def get_interests(current_user: str = Depends(get_current_user)):
@@ -183,50 +131,7 @@ async def remove_interest(interest: str, current_user: str = Depends(get_current
     )
     return {"message": "兴趣已删除"}
 
-"""
-@router.put("/update")
-async def update_profile(profile: ProfileUpdate, current_user: str = Depends(get_current_user)):
-    try:
-        user = db.users.find_one({"_id": ObjectId(current_user)})
-        if not user:
-            raise HTTPException(status_code=404, detail="用户不存在")
-
-        update_data = {}
-        
-        # 更新用户名
-        if profile.username and profile.username != user.get("username"):
-            existing_user = db.users.find_one({
-                "username": profile.username,
-                "_id": {"$ne": ObjectId(current_user)}
-            })
-            if existing_user:
-                raise HTTPException(status_code=400, detail="用户名已存在")
-            update_data["username"] = profile.username
-
-        # 更新密码
-        if profile.new_password:
-            if not profile.current_password:
-                raise HTTPException(status_code=400, detail="需要提供当前密码")
-            
-            if not verify_password(profile.current_password, user["password"]):
-                raise HTTPException(status_code=400, detail="当前密码错误")
-            
-            update_data["password"] = get_password_hash(profile.new_password)
-
-        if update_data:
-            result = db.users.update_one(
-                {"_id": ObjectId(current_user)},
-                {"$set": update_data}
-            )
-            if result.modified_count == 0:
-                raise HTTPException(status_code=400, detail="更新失败")
-
-        return {"message": "个人信息更新成功"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-"""
-
-@router.get("/learning-path")
+@router.get("/learning-pbl")
 async def get_learning_path(current_user: str = Depends(get_current_user)):
     try:
         user = db.users.find_one({"_id": ObjectId(current_user)})
@@ -283,6 +188,7 @@ async def get_learning_path(current_user: str = Depends(get_current_user)):
         return {"path": learning_path}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 @router.put("/courses/{course_id}/status")
 async def update_course_status(course_id: str, current_user: str = Depends(get_current_user)):
     try:
@@ -347,6 +253,396 @@ async def unselect_course(course_id: str, current_user: str = Depends(get_curren
     except Exception as e:
         print(f"退选课程错误: {str(e)}")  # 添加错误日志
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@router.get("/achievements")
+async def get_user_achievements(current_user: str = Depends(get_current_user)):
+    try:
+        user = db.users.find_one({"_id": ObjectId(current_user)})
+        if not user:
+            raise HTTPException(status_code=404, detail="用户不存在")
+
+        # 计算用户成就
+        achievements = []
+        points = 0
+
+        # 检查课程相关成就
+        selected_courses_count = len(user.get("selected_courses", []))
+        
+        # 初次选课成就
+        if selected_courses_count >= 1:
+            achievements.append({
+                "badgeId": "first_course",
+                "earnedAt": user.get("first_course_date", None)
+            })
+            points += 10
+
+        # 课程收藏家成就
+        if selected_courses_count >= 5:
+            achievements.append({
+                "badgeId": "course_collector_bronze",
+                "earnedAt": user.get("bronze_collector_date", None)
+            })
+            points += 20
+
+        if selected_courses_count >= 10:
+            achievements.append({
+                "badgeId": "course_collector_silver",
+                "earnedAt": user.get("silver_collector_date", None)
+            })
+            points += 50
+
+        if selected_courses_count >= 20:
+            achievements.append({
+                "badgeId": "course_collector_gold",
+                "earnedAt": user.get("gold_collector_date", None)
+            })
+            points += 100
+
+        # 个人资料完善成就
+        if user.get("profile_completed", False):
+            achievements.append({
+                "badgeId": "profile_complete",
+                "earnedAt": user.get("profile_complete_date", None)
+            })
+            points += 15
+
+        # 评论相关成就
+        comments_count = user.get("comments_count", 0)
+        if comments_count >= 1:
+            achievements.append({
+                "badgeId": "first_comment",
+                "earnedAt": user.get("first_comment_date", None)
+            })
+            points += 10
+
+        if comments_count >= 10:
+            achievements.append({
+                "badgeId": "social_butterfly",
+                "earnedAt": user.get("social_butterfly_date", None)
+            })
+            points += 30
+
+        return {
+            "points": points,
+            "badges": achievements
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/leaderboard")
+async def get_leaderboard():
+    try:
+        # 获取所有用户
+        users = list(db.users.find({}, {
+            "username": 1,
+            "selected_courses": 1,
+            "badges": 1,
+            "points": 1
+        }))
+
+        leaderboard = []
+        for user in users:
+            # 计算用户积分和成就
+            user_points = 0
+            user_badges = []
+            
+            # 计算选课相关成就和积分
+            selected_courses_count = len(user.get("selected_courses", []))
+            
+            # 初次选课成就
+            if selected_courses_count >= 1:
+                user_badges.append({
+                    "badgeId": "first_course",
+                    "earnedAt": user.get("first_course_date")
+                })
+                user_points += 10
+
+            # 课程收藏家成就
+            if selected_courses_count >= 5:
+                user_badges.append({
+                    "badgeId": "course_collector_bronze",
+                    "earnedAt": user.get("bronze_collector_date")
+                })
+                user_points += 20
+
+            if selected_courses_count >= 10:
+                user_badges.append({
+                    "badgeId": "course_collector_silver",
+                    "earnedAt": user.get("silver_collector_date")
+                })
+                user_points += 50
+
+            if selected_courses_count >= 20:
+                user_badges.append({
+                    "badgeId": "course_collector_gold",
+                    "earnedAt": user.get("gold_collector_date")
+                })
+                user_points += 100
+
+            # 更新用户成就和积分到数据库
+            db.users.update_one(
+                {"_id": user["_id"]},
+                {
+                    "$set": {
+                        "points": user_points,
+                        "badges": user_badges
+                    }
+                }
+            )
+
+            leaderboard.append({
+                "_id": str(user["_id"]),
+                "username": user.get("username", "未知用户"),
+                "points": user_points,
+                "badgeCount": len(user_badges)
+            })
+
+        # 按积分降序排序
+        leaderboard.sort(key=lambda x: x["points"], reverse=True)
+        return leaderboard[:10]  # 返回前10名
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 成就检查和更新函数
+@router.post("/check-achievements")
+async def check_achievements(current_user: str = Depends(get_current_user)):
+    try:
+        user = db.users.find_one({"_id": ObjectId(current_user)})
+        if not user:
+            raise HTTPException(status_code=404, detail="用户未找到")
+        
+        # 获取用户当前成就
+        achievements = user.get("achievements", {})
+        if not achievements:
+            achievements = {"points": 0, "badges": []}
+        
+        current_badges = {badge["badgeId"] for badge in achievements.get("badges", [])}
+        new_badges = []
+        points_earned = 0
+        
+        # 获取用户选择的课程数量
+        selected_courses = list(db.user_courses.find({"user_id": ObjectId(current_user)}))
+        course_count = len(selected_courses)
+        
+        # 获取用户评论数量
+        comments = list(db.comments.find({"user_id": ObjectId(current_user)}))
+        comment_count = len(comments)
+        
+        # 检查是否完成个人资料
+        profile_complete = all(user.get(field) for field in ["education", "industry", "interests"])
+        
+        # 检查是否使用过学习路径
+        learning_path_used = db.user_activities.find_one({
+            "user_id": ObjectId(current_user),
+            "activity_type": "learning_path_generated"
+        }) is not None
+        
+        # 检查各种成就条件
+        
+        # 初出茅庐
+        if course_count >= 1 and "first_course" not in current_badges:
+            new_badges.append({
+                "badgeId": "first_course",
+                "earnedAt": datetime.now().isoformat()
+            })
+            points_earned += 10
+        
+        # 课程收藏家 I
+        if course_count >= 5 and "course_collector_bronze" not in current_badges:
+            new_badges.append({
+                "badgeId": "course_collector_bronze",
+                "earnedAt": datetime.now().isoformat()
+            })
+            points_earned += 20
+        
+        # 课程收藏家 II
+        if course_count >= 10 and "course_collector_silver" not in current_badges:
+            new_badges.append({
+                "badgeId": "course_collector_silver",
+                "earnedAt": datetime.now().isoformat()
+            })
+            points_earned += 50
+        
+        # 课程收藏家 III
+        if course_count >= 20 and "course_collector_gold" not in current_badges:
+            new_badges.append({
+                "badgeId": "course_collector_gold",
+                "earnedAt": datetime.now().isoformat()
+            })
+            points_earned += 100
+        
+        # 完善档案
+        if profile_complete and "profile_complete" not in current_badges:
+            new_badges.append({
+                "badgeId": "profile_complete",
+                "earnedAt": datetime.now().isoformat()
+            })
+            points_earned += 15
+        
+        # 规划未来
+        if learning_path_used and "learning_path" not in current_badges:
+            new_badges.append({
+                "badgeId": "learning_path",
+                "earnedAt": datetime.now().isoformat()
+            })
+            points_earned += 25
+        
+        # 初次发声
+        if comment_count >= 1 and "first_comment" not in current_badges:
+            new_badges.append({
+                "badgeId": "first_comment",
+                "earnedAt": datetime.now().isoformat()
+            })
+            points_earned += 10
+        
+        # 社交达人
+        if comment_count >= 10 and "social_butterfly" not in current_badges:
+            new_badges.append({
+                "badgeId": "social_butterfly",
+                "earnedAt": datetime.now().isoformat()
+            })
+            points_earned += 30
+        
+        # 更新用户成就
+        if new_badges or points_earned > 0:
+            updated_badges = achievements.get("badges", []) + new_badges
+            updated_points = achievements.get("points", 0) + points_earned
+            
+            db.users.update_one(
+                {"_id": ObjectId(current_user)},
+                {"$set": {
+                    "achievements.points": updated_points,
+                    "achievements.badges": updated_badges
+                }}
+            )
+            
+            return {
+                "success": True,
+                "new_badges": new_badges,
+                "points_earned": points_earned,
+                "total_points": updated_points
+            }
+        
+        return {"success": True, "message": "没有新的成就"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/todos")
+async def get_todos(current_user: str = Depends(get_current_user)):
+    try:
+        todos = list(db.todos.find({"user_id": ObjectId(current_user)}).sort("createdAt", -1))
+        for todo in todos:
+            todo["_id"] = str(todo["_id"])
+            todo["user_id"] = str(todo["user_id"])
+        return todos
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/todos")
+async def create_todo(todo: Todo, current_user: str = Depends(get_current_user)):
+    try:
+        todo_dict = todo.dict()
+        todo_dict["user_id"] = ObjectId(current_user)
+        todo_dict["createdAt"] = datetime.utcnow()
+        result = db.todos.insert_one(todo_dict)
+        created_todo = db.todos.find_one({"_id": result.inserted_id})
+        created_todo["_id"] = str(created_todo["_id"])
+        created_todo["user_id"] = str(created_todo["user_id"])
+        return created_todo
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/todos/{todo_id}")
+async def update_todo(todo_id: str, todo: Todo, current_user: str = Depends(get_current_user)):
+    try:
+        # 确保待办事项存在且属于当前用户
+        existing_todo = db.todos.find_one({
+            "_id": ObjectId(todo_id),
+            "user_id": ObjectId(current_user)
+        })
+        
+        if not existing_todo:
+            raise HTTPException(status_code=404, detail="待办事项不存在")
+            
+        # 更新待办事项
+        db.todos.update_one(
+            {"_id": ObjectId(todo_id)},
+            {"$set": {
+                "completed": todo.completed,
+                "content": todo.content
+            }}
+        )
+        
+        return {"message": "更新成功"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/todos/{todo_id}")
+async def delete_todo(todo_id: str, current_user: str = Depends(get_current_user)):
+    try:
+        result = db.todos.delete_one({
+            "_id": ObjectId(todo_id),
+            "user_id": ObjectId(current_user)
+        })
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="待办事项不存在")
+        return {"message": "删除成功"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/achievement-diaries")
+async def get_achievement_diaries(current_user: str = Depends(get_current_user)):
+    try:
+        diaries = list(db.achievement_diaries.find(
+            {"user_id": ObjectId(current_user)}
+        ).sort("createdAt", -1))
+        
+        for diary in diaries:
+            diary["_id"] = str(diary["_id"])
+            diary["user_id"] = str(diary["user_id"])
+        return diaries
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/achievement-diaries")
+async def create_achievement_diary(
+    diary: AchievementDiary,
+    current_user: str = Depends(get_current_user)
+):
+    try:
+        diary_dict = diary.dict()
+        diary_dict["user_id"] = ObjectId(current_user)
+        diary_dict["createdAt"] = datetime.utcnow()
+        
+        result = db.achievement_diaries.insert_one(diary_dict)
+        created_diary = db.achievement_diaries.find_one({"_id": result.inserted_id})
+        
+        created_diary["_id"] = str(created_diary["_id"])
+        created_diary["user_id"] = str(created_diary["user_id"])
+        return created_diary
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/achievement-diaries/{diary_id}")
+async def delete_achievement_diary(
+    diary_id: str,
+    current_user: str = Depends(get_current_user)
+):
+    try:
+        result = db.achievement_diaries.delete_one({
+            "_id": ObjectId(diary_id),
+            "user_id": ObjectId(current_user)
+        })
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="成就日记不存在")
+        return {"message": "删除成功"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("")
 async def get_user_profile(current_user: str = Depends(get_current_user)):
     try:
@@ -359,11 +655,7 @@ async def get_user_profile(current_user: str = Depends(get_current_user)):
             "username": user.get("username", ""),
             "email": user.get("email", ""),
             "interests": user.get("interests", []),
-            "selected_courses_count": len(user.get("selected_courses", [])),
-            "completed_courses_count": len([
-                k for k, v in user.get("course_progress", {}).items() 
-                if v == "已完成"
-            ])
+            "selected_courses_count": len(user.get("selected_courses", []))
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

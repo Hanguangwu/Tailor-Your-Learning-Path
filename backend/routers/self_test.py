@@ -11,11 +11,10 @@ load_dotenv()
 
 router = APIRouter()
 
-# 配置OpenAI API
 # 初始化 OpenAI 客户端
 client = OpenAI(
     api_key=os.getenv("CHATANYWHERE_API_KEY"),
-    base_url=f"{os.getenv('CHATANYWHERE_URL')}/v1"
+    base_url=os.getenv("CHATANYWHERE_BASE_URL")  # 修改这里
 )
 
 class QuestionRequest(BaseModel):
@@ -44,7 +43,7 @@ async def generate_questions(request: QuestionRequest, current_user: str = Depen
         
         # 调用OpenAI API生成测试题
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "你是一个专业的教育测试题生成器。请根据提供的内容生成单选题，每个题目有4个选项，只有一个正确答案。"},
                 {"role": "user", "content": f"请根据以下内容生成{count}道单选题，每题4个选项，只有1个正确答案。同时提供每题的解析。\n\n内容：{request.content}\n\n请按以下JSON格式返回：\n[{{'question': '问题', 'options': ['选项A', '选项B', '选项C', '选项D'], 'correctIndex': 0, 'explanation': '解析'}}]"}

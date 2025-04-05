@@ -14,7 +14,12 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 XAI_API_KEY=xxxxxxxx
 CHATANYWHERE_API_KEY=xxxxxxxxxxx
-CHATANYWHERE_URL=https://api.chatanywhere.com.cn
+CHATANYWHERE_URL=https://api.chatanywhere.tech
+MAIL_USERNAME=your_email@example.com
+MAIL_PASSWORD=your_email_password
+MAIL_FROM=your_email@example.com
+MAIL_PORT=587
+MAIL_SERVER=smtp.example.com
 ```
 
 

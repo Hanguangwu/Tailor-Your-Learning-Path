@@ -11,3 +11,9 @@ email-validator
 scikit-learn
 pandas
 openai==1.66.3
+langchain
+langchain-community
+langchain-openai
+chroma
+chromadb
+fastapi-mail
