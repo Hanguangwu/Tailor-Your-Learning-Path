@@ -7,13 +7,24 @@ from dotenv import load_dotenv
 # 加载环境变量
 load_dotenv()
 
-app = FastAPI()
-
+# 获取前端URL，如果未设置则允许所有来源（不推荐用于生产环境）
 FRONTEND_URL = os.getenv("FRONTEND_URL")
+allowed_origins = [FRONTEND_URL] if FRONTEND_URL else ["*"]
 
+# 获取环境和端口
+ENV = os.getenv("ENVIRONMENT", "production")
+PORT = int(os.getenv("PORT", 3000))
+
+app = FastAPI(
+    title="CSDIY API",
+    description="CSDIY学习平台API",
+    version="1.0.0"
+)
+
+# 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],  # 允许前端开发服务器的地址
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,17 +41,27 @@ app.include_router(self_test.router, prefix="/api/self-test", tags=["self-test"]
 app.include_router(recommendations.router, prefix="/api/recommendations", tags=["recommendations"])
 app.include_router(websites.router, prefix="/api/websites", tags=["websites"])
 
+@app.get("/")  
+def read_root():  
+    return {"message": "Hello, World!"}  
+
+@app.head("/")  
+def head_root():  
+    return {"message": "Hello, World!"}  
+
 if __name__ == "__main__":
     import uvicorn
     import signal
     import sys
 
-
     def signal_handler(sig, frame):
-        print('Exiting gracefully...')
+        print('正在优雅退出...')
         sys.exit(0)
 
-
+    # 注册信号处理器，用于优雅关闭
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    uvicorn.run("main:app", host="0.0.0.0", port=3000, reload=True)
+    
+    # 开发环境使用reload=True，生产环境不使用
+    is_dev = ENV.lower() == "development"
+    uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=is_dev)
