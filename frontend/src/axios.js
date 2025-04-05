@@ -26,8 +26,8 @@ instance.interceptors.request.use(
 // 响应拦截器
 instance.interceptors.response.use(
     response => {
-        // 直接返回响应数据，简化后续处理
-        return response.data
+        // 返回完整响应，保留原始结构
+        return response
     },
     error => {
         // 统一处理错误
