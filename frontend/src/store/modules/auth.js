@@ -23,31 +23,48 @@ const actions = {
     try {
       // 创建 FormData 对象以匹配后端 OAuth2PasswordRequestForm 的格式
       const formDataObj = new FormData()
-      formDataObj.append('username', formData.username)  // 后端使用 username 字段接收邮箱
+      formDataObj.append('username', formData.username)
       formDataObj.append('password', formData.password)
-      console.log("执行到auth.js中的login1")
+
+      console.log('发送登录请求:', formData.username)
+
       const response = await axios.post('/api/auth/login', formDataObj, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
-      const { access_token, user } = response.data
-      console.log("执行到auth.js中的login2")
+      console.log('登录响应:', response)
+
+      // 检查响应格式
+      if (!response.access_token || !response.user) {
+        console.error('登录响应格式不正确:', response)
+        throw new Error('登录响应格式不正确')
+      }
+
+      const { access_token, user } = response
+
       commit('SET_AUTH_DATA', { token: access_token, user })
 
       // 设置 token 过期检查
-      const decodedToken = jwtDecode(access_token)
-      const expirationTime = decodedToken.exp * 1000 - 60000  // 提前一分钟检查过期
-      setTimeout(() => {
-        // 自动注销或刷新 token
-        commit('CLEAR_AUTH_DATA')
-        alert('您的会话已过期，请重新登录。')
-        router.push('/login')
-      }, expirationTime - Date.now())
+      try {
+        const decodedToken = jwtDecode(access_token)
+        const expirationTime = decodedToken.exp * 1000 - 60000
+        setTimeout(() => {
+          commit('CLEAR_AUTH_DATA')
+          alert('您的会话已过期，请重新登录。')
+          // 注意: 这里需要导入 router
+          if (window.router) {
+            window.router.push('/login')
+          }
+        }, expirationTime - Date.now())
+      } catch (tokenError) {
+        console.error('解析 token 失败:', tokenError)
+      }
 
-      return response.data
+      return response
     } catch (error) {
+      console.error('登录失败:', error)
       throw error
     }
   },
