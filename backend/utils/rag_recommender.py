@@ -11,28 +11,12 @@ import json
 # 加载环境变量
 load_dotenv()
 
-# 获取OpenAI API密钥
-# openai_api_key = os.getenv("OPENAI_API_KEY")
-# if not openai_api_key:
-#     raise ValueError("请在.env文件中设置OPENAI_API_KEY")
-
 from getOpenAIAPIKey import get_chatanywhere_api_key, get_chatanywhere_url
 
 embeddings = OpenAIEmbeddings(
     api_key=get_chatanywhere_api_key(),
     base_url=get_chatanywhere_url()
 )
-# 初始化 OpenAI 客户端 (替换成自己的 API 信息)
-# client = OpenAI(
-#     api_key=get_chatanywhere_api_key(),
-#     base_url=get_chatanywhere_url()
-# )
-
-# # 初始化嵌入模型
-# embeddings = OpenAIEmbeddings(
-#     model="text-embedding-ada-002",
-#     openai_api_key=openai_api_key
-# )
 
 # 初始化LLM
 llm = ChatOpenAI(
@@ -81,72 +65,66 @@ template = """
 prompt = ChatPromptTemplate.from_template(template)
 
 def format_user_info(user_data):
-    """格式化用户信息"""
+    """精简格式化用户信息，减少 token 消耗"""
     info = []
     
+    # 只保留最关键的用户信息
     if user_data.get("username"):
-        info.append(f"- 用户名: {user_data.get('username')}")
+        info.append(f"用户: {user_data.get('username')}")
     
-    if user_data.get("age"):
-        info.append(f"- 年龄: {user_data.get('age')}")
-    
+    # 合并教育和职业信息
+    edu_job = []
     if user_data.get("education"):
-        info.append(f"- 学历: {user_data.get('education')}")
-    
+        edu_job.append(user_data.get('education'))
     if user_data.get("industry"):
-        info.append(f"- 行业: {user_data.get('industry')}")
-    
+        edu_job.append(user_data.get('industry'))
     if user_data.get("jobTitle"):
-        info.append(f"- 职位: {user_data.get('jobTitle')}")
+        edu_job.append(user_data.get('jobTitle'))
     
-    if user_data.get("careerPath"):
-        info.append(f"- 职业发展阶段: {user_data.get('careerPath')}")
+    if edu_job:
+        info.append(f"背景: {', '.join(edu_job)}")
     
-    if user_data.get("interests"):
-        interests = user_data.get("interests", [])
-        if interests:
-            info.append(f"- 兴趣领域: {', '.join(interests)}")
-    
+    # 合并技能信息
+    skills = []
     if user_data.get("technicalSkills"):
-        tech_skills = user_data.get("technicalSkills", [])
-        if tech_skills:
-            info.append(f"- 技术技能: {', '.join(tech_skills)}")
-    
+        skills.extend(user_data.get("technicalSkills", []))
     if user_data.get("softSkills"):
-        soft_skills = user_data.get("softSkills", [])
-        if soft_skills:
-            info.append(f"- 软技能: {', '.join(soft_skills)}")
+        skills.extend(user_data.get("softSkills", [])[:2])  # 限制软技能数量
     
-    if user_data.get("tools"):
-        tools = user_data.get("tools", [])
-        if tools:
-            info.append(f"- 工具偏好: {', '.join(tools)}")
+    if skills:
+        info.append(f"技能: {', '.join(skills[:5])}")  # 限制技能数量
     
+    # 合并兴趣和目标
+    interests_goals = []
+    if user_data.get("interests"):
+        interests_goals.extend(user_data.get("interests", [])[:3])  # 限制兴趣数量
     if user_data.get("learningGoals"):
-        goals = user_data.get("learningGoals", [])
-        if goals:
-            info.append(f"- 学习目标: {', '.join(goals)}")
+        interests_goals.extend(user_data.get("learningGoals", [])[:2])  # 限制目标数量
     
+    if interests_goals:
+        info.append(f"兴趣和目标: {', '.join(interests_goals)}")
+    
+    # 只有在有明确描述时才添加
     if user_data.get("goalDescription"):
-        info.append(f"- 目标描述: {user_data.get('goalDescription')}")
-    
-    if user_data.get("learningPreferences"):
-        prefs = user_data.get("learningPreferences", [])
-        if prefs:
-            info.append(f"- 学习方式偏好: {', '.join(prefs)}")
+        # 截断目标描述，减少 token
+        desc = user_data.get('goalDescription')
+        if len(desc) > 100:
+            desc = desc[:100] + "..."
+        info.append(f"目标: {desc}")
     
     return "\n".join(info)
 
 def get_relevant_courses(user_data, n_results=10):
-    """获取与用户相关的课程"""
+    """获取与用户相关的课程，精简描述以减少 token 消耗"""
+    
     # 构建查询文本
     query_parts = []
     
     if user_data.get("interests"):
-        query_parts.extend(user_data.get("interests", []))
+        query_parts.extend(user_data.get("interests", [])[:3])  # 限制兴趣数量
     
     if user_data.get("technicalSkills"):
-        query_parts.extend(user_data.get("technicalSkills", []))
+        query_parts.extend(user_data.get("technicalSkills", [])[:3])  # 限制技能数量
     
     if user_data.get("industry"):
         query_parts.append(user_data.get("industry"))
@@ -155,10 +133,7 @@ def get_relevant_courses(user_data, n_results=10):
         query_parts.append(user_data.get("jobTitle"))
     
     if user_data.get("learningGoals"):
-        query_parts.extend(user_data.get("learningGoals", []))
-    
-    if user_data.get("goalDescription"):
-        query_parts.append(user_data.get("goalDescription"))
+        query_parts.extend(user_data.get("learningGoals", [])[:2])  # 限制目标数量
     
     # 如果没有足够的查询信息，使用一些通用术语
     if len(query_parts) < 2:
@@ -167,48 +142,76 @@ def get_relevant_courses(user_data, n_results=10):
         query_parts.append("推荐课程")
     
     # 构建查询文本
-    query_text = " ".join(query_parts)
+    query_text = " ".join(query_parts[:10])  # 限制查询文本长度
     
     # 生成查询向量
     query_embedding = embeddings.embed_query(query_text)
     
-    # 执行相似性查询
+    # 获取用户已选择的课程ID列表
+    selected_courses = user_data.get("selected_courses", [])
+    
+    # 执行相似性查询 - 减少查询数量以节省 token
+    additional_results = min(len(selected_courses), 5)  # 限制额外查询数量
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=n_results
+        n_results=min(n_results + additional_results, 20)  # 限制最大查询数量
     )
     
-    # 格式化结果
+    # 格式化结果并过滤掉已选择的课程
     formatted_courses = []
     for i in range(len(results["ids"][0])):
         course_id = results["ids"][0][i]
+        
+        # 跳过已选择的课程
+        if course_id in selected_courses:
+            continue
+            
         metadata = results["metadatas"][0][i]
+        
+        # 精简课程描述，减少 token 消耗
+        description = metadata.get('description', '')
+        if len(description) > 100:  # 限制描述长度
+            description = description[:100] + "..."
         
         course_info = {
             "course_id": course_id,
-            "title": metadata.get('course_name', ''),
-            "description": metadata.get('description', ''),
-            "reason": "根据用户的兴趣和技能推荐"  # 这里可以根据需要生成更详细的推荐理由
+            "title": metadata.get('course_name', '')[:50],  # 限制标题长度
+            "description": description,
         }
         
         formatted_courses.append(course_info)
+        
+        # 如果已经收集了足够的课程，就停止
+        if len(formatted_courses) >= min(n_results, 10):  # 限制最大课程数量
+            break
     
     return formatted_courses
 
 def recommend_courses(user_data, count=5):
-    """基于RAG为用户推荐课程"""
+    """基于RAG为用户推荐课程，优化 token 消耗"""
     try:
+        # 限制推荐数量，减少 token 消耗
+        count = min(count, 10)
+        
         # 格式化用户信息
         user_info = format_user_info(user_data)
         
-        # 获取相关课程
-        courses = get_relevant_courses(user_data, n_results=15)  # 获取更多课程供LLM选择
+        # 获取相关课程 - 过滤掉已选择的课程，减少获取的课程数量
+        courses = get_relevant_courses(user_data, n_results=10)  # 减少获取的课程数量
         
+        # 如果过滤后没有足够的课程可推荐
+        if not courses:
+            print("没有足够的未选择课程可供推荐")
+            return []
+        
+        # 进一步限制传递给 LLM 的课程数量
+        limited_courses = courses[:min(len(courses), 8)]
+            
         # 构建RAG链
         rag_chain = (
             {"user_info": lambda _: user_info, 
-             "courses": lambda _: courses,
-             "count": lambda _: str(count)}
+             "courses": lambda _: limited_courses,
+             "count": lambda _: str(min(count, len(limited_courses)))}
             | prompt
             | llm
             | StrOutputParser()
@@ -220,7 +223,6 @@ def recommend_courses(user_data, count=5):
         # 解析JSON响应
         try:
             recommendations = json.loads(response)
-            print(recommendations)
             return recommendations
         except json.JSONDecodeError:
             # 如果JSON解析失败，尝试提取JSON部分
@@ -235,21 +237,14 @@ def recommend_courses(user_data, count=5):
         
     except Exception as e:
         print(f"推荐课程时出错: {str(e)}")
+        # 如果是 token 限制错误，返回一个简单的推荐列表
+        # 获取相关课程 - 过滤掉已选择的课程，减少获取的课程数量
+        courses = get_relevant_courses(user_data, n_results=10)  # 减少获取的课程数量
+        if "token" in str(e).lower() and courses:
+            print("检测到 token 限制错误，返回简化推荐")
+            return [{"course_id": c["course_id"], 
+                     "title": c["title"], 
+                     "description": c["description"], 
+                     "reason": "基于用户兴趣和技能推荐"} 
+                    for c in courses[:min(count, len(courses))]]
         raise
-
-# if __name__ == "__main__":
-#     # 测试用例
-#     test_user = {
-#         "username": "测试用户",
-#         "age": 25,
-#         "education": "本科",
-#         "industry": "IT",
-#         "jobTitle": "软件工程师",
-#         "interests": ["人工智能", "机器学习", "编程"],
-#         "technicalSkills": ["Python", "数据分析"],
-#         "learningGoals": ["提升技术能力", "职业发展"],
-#         "goalDescription": "希望学习人工智能和机器学习相关知识，提升职业竞争力"
-#     }
-    
-#     recommendations = recommend_courses(test_user, count=3)
-#     print(json.dumps(recommendations, ensure_ascii=False, indent=2))
