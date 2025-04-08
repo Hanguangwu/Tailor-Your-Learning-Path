@@ -131,3 +131,29 @@ async def dislike_comment(comment_id: str, current_user: str = Depends(get_curre
             return {"message": "取消踩"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{comment_id}")
+async def delete_comment(comment_id: str, current_user: str = Depends(get_current_user)):
+    """删除评论"""
+    try:
+        # 查找评论
+        comment = db.comments.find_one({"_id": ObjectId(comment_id)})
+        
+        if not comment:
+            raise HTTPException(status_code=404, detail="评论不存在")
+        
+        # 检查是否是评论作者 - 修改这里，current_user 直接是用户ID字符串
+        if str(comment["user_id"]) != current_user:
+            raise HTTPException(status_code=403, detail="只能删除自己的评论")
+        
+        # 删除评论
+        result = db.comments.delete_one({"_id": ObjectId(comment_id)})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="评论不存在")
+        
+        return {"message": "评论已删除"}
+    except Exception as e:
+        # 添加更详细的错误日志
+        print(f"删除评论错误: {str(e)}, 类型: {type(current_user)}, 评论ID: {comment_id}")
+        raise HTTPException(status_code=500, detail=f"删除评论失败: {str(e)}")
