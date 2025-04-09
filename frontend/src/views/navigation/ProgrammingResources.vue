@@ -30,7 +30,7 @@ export default {
     const fetchWebsites = async () => {
       try {
         loading.value = true
-        const response = await axios.get('/api/websites/category/编程')
+        const response = await axios.get('/api/websites/category/编程工具')
         websites.value = response.data
       } catch (error) {
         console.error('获取编程网站数据失败:', error)

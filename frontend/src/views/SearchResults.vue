@@ -72,13 +72,11 @@ import { useStore } from 'vuex'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import CourseCard from '@/components/CourseCard.vue'
-//import SearchBar from '@/components/SearchBar.vue'
 
 export default {
   name: 'SearchResults',
   components: {
-    CourseCard,
-    //SearchBar
+    CourseCard
   },
   setup() {
     const store = useStore()
@@ -111,13 +109,6 @@ export default {
         isLoading.value = false
       }
     }
-
-    // const handleSearch = async (keyword) => {
-    //   await router.push({
-    //     path: '/search',
-    //     query: { keyword }
-    //   })
-    // }
 
     const handlePageChange = (page) => {
       performSearch(searchQuery.value, page)
@@ -160,7 +151,6 @@ export default {
       searchResults,
       searchMeta,
       currentPage,
-      //handleSearch,
       handlePageChange,
       handleCourseSelect,
       handleCourseUnselect

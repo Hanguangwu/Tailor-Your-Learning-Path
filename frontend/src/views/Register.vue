@@ -27,16 +27,18 @@
         </div>
 
         <!-- 其他输入框保持不变 -->
-        <div>
+        <div class="relative">
           <label class="block text-sm font-medium text-gray-700">邮箱</label>
-          <input v-model="form.email" type="email" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+          <input v-model="form.email" type="email" required class="form-input"
+            :class="{ 'border-red-500': errors.email }" />
+          <p v-if="errors.email" class="error-message">{{ errors.email }}</p>
         </div>
 
-        <div>
+        <div class="relative">
           <label class="block text-sm font-medium text-gray-700">密码</label>
-          <input v-model="form.password" type="password" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+          <input v-model="form.password" type="password" required class="form-input"
+            :class="{ 'border-red-500': errors.password }" />
+          <p v-if="errors.password" class="error-message">{{ errors.password }}</p>
         </div>
 
         <!-- 兴趣选择部分改为更紧凑的布局 -->
@@ -49,6 +51,7 @@
               <span class="text-sm">{{ interest }}</span>
             </label>
           </div>
+          <p v-if="errors.interests" class="error-message mt-2">{{ errors.interests }}</p>
         </div>
 
         <button type="submit" class="submit-button mt-6" :disabled="isLoading">
@@ -63,6 +66,7 @@
 import { ref, reactive } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 export default {
   name: 'Register',
@@ -73,19 +77,19 @@ export default {
     const errors = reactive({})  // 添加 errors 对象
 
     const interests = [
-      "工学",  
-      "管理学",  
-      "计算机科学",  
-      "教育教学",  
-      "经济学",  
-      "理学",  
-      "人工智能",  
-      "社会科学",  
-      "通识教育",  
-      "外语",  
-      "文学文化",  
-      "医药卫生",  
-      "艺术学"  
+      "工学",
+      "管理学",
+      "计算机科学",
+      "教育教学",
+      "经济学",
+      "理学",
+      "人工智能",
+      "社会科学",
+      "通识教育",
+      "外语",
+      "文学文化",
+      "医药卫生",
+      "艺术学"
     ]
 
     const form = ref({
@@ -115,6 +119,17 @@ export default {
         newErrors.password = '密码长度至少为6位'
       }
 
+      // 添加兴趣验证
+      if (form.value.interests.length === 0) {
+        newErrors.interests = '请至少选择一个感兴趣的领域'
+      }
+
+      // 清空之前的错误信息
+      Object.keys(errors).forEach(key => {
+        delete errors[key]
+      })
+
+      // 添加新的错误信息
       Object.assign(errors, newErrors)
       return Object.keys(newErrors).length === 0
     }
@@ -130,12 +145,19 @@ export default {
           password: form.value.password,
           interests: form.value.interests
         })
+        ElMessage.success('注册成功')
         router.push('/login')
       } catch (error) {
         if (error.response?.data?.detail) {
           // 处理后端返回的具体错误信息
           const errorMsg = error.response.data.detail
-          if (errorMsg.includes('邮箱')) {
+
+          // 清空之前的错误信息
+          Object.keys(errors).forEach(key => {
+            delete errors[key]
+          })
+
+          if (errorMsg.includes('邮箱已被注册') || errorMsg.includes('邮箱')) {
             errors.email = errorMsg
           } else if (errorMsg.includes('用户名')) {
             errors.username = errorMsg

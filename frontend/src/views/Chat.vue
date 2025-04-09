@@ -1,9 +1,14 @@
 <template>
   <div class="container mx-auto px-4 py-8">
     <!-- 模型切换 -->
-    <el-select v-model="currentModel" :key="selectKey" placeholder="选择模型" class="mb-4">
-      <el-option v-for="model in models" :key="model.id" :label="model.name" :value="model"
-        :disabled="!model.available">
+    <el-select v-model="currentModelId" placeholder="选择模型" class="mb-4" style="width: 240px">
+      <el-option
+        v-for="model in models"
+        :key="model.id"
+        :label="model.name"
+        :value="model.id"
+        :disabled="!model.available"
+      >
         <span>{{ model.name }}</span>
         <span v-if="!model.available" class="text-xs text-gray-500">(即将推出)</span>
       </el-option>
@@ -11,7 +16,7 @@
     
     <!-- 显示当前选择的模型 -->
     <div class="mb-4 text-sm text-gray-600">
-      当前使用模型: {{ currentModel.name }}
+      当前使用模型: {{ getCurrentModelName }}
     </div>
 
     <!-- 聊天输入框 -->
@@ -69,11 +74,10 @@
 </template>
 
 <script>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import axios from '@/axios'
 import { ElMessage } from 'element-plus'
-import { marked } from 'marked'
-
+import * as marked from 'marked'
 export default {
   name: 'Chat',
   setup() {
@@ -83,24 +87,37 @@ export default {
       { id: 'gpt-4o-mini', name: 'GPT-4o Mini', available: true },
     ]
 
-    const currentModel = ref(models[0])
+    // 使用模型ID作为选择值
+    const currentModelId = ref('gpt-3.5-turbo')
     const messages = ref([])
     const userInput = ref('')
     const loading = ref(false)
     const chatContainer = ref(null)
     const gpt4UsageCount = ref(0)
-    const selectKey = ref(0)
     const lastUserMessage = ref('')
 
+    // 计算当前选择的模型名称
+    const getCurrentModelName = computed(() => {
+      const model = models.find(m => m.id === currentModelId.value)
+      return model ? model.name : '未选择'
+    })
+
+    // 获取当前模型对象的方法
+    const getCurrentModel = () => {
+      return models.find(m => m.id === currentModelId.value) || models[0]
+    }
+    
     const renderMarkdown = (text) => {
       try {
-        return marked(text)
+        // 修改 marked 的使用方式
+        return marked.parse(text)
       } catch (error) {
         console.error('Markdown渲染错误:', error)
         return text
       }
     }
 
+    // 其他方法保持不变
     const copyMessage = (text) => {
       navigator.clipboard.writeText(text)
         .then(() => {
@@ -131,7 +148,7 @@ export default {
       try {
         const response = await axios.post('/api/chat/sendMessage', {
           message: lastUserMessage.value,
-          model: currentModel.value.id
+          model: currentModelId.value // 直接使用模型ID
         })
 
         if (response.data && response.data.response) {
@@ -149,10 +166,6 @@ export default {
         loading.value = false
         scrollToBottom()
       }
-    }
-
-    const handleSelect = () => {
-      selectKey.value += 1
     }
 
     const scrollToBottom = async () => {
@@ -178,7 +191,9 @@ export default {
     const sendMessage = async () => {
       if (loading.value || !userInput.value.trim()) return
 
-      if (currentModel.value.id === 'gpt-4' && gpt4UsageCount.value >= 3) {
+      const currentModel = getCurrentModel()
+      
+      if (currentModel.id === 'gpt-4' && gpt4UsageCount.value >= 3) {
         ElMessage.warning('GPT-4 每天限制使用3次，请明天再试')
         return
       }
@@ -192,7 +207,7 @@ export default {
       try {
         const response = await axios.post('/api/chat/sendMessage', {
           message: userMessage,
-          model: currentModel.value.id
+          model: currentModelId.value // 直接使用模型ID
         })
 
         if (response.data && response.data.response) {
@@ -201,7 +216,7 @@ export default {
             content: response.data.response
           })
 
-          if (currentModel.value.id === 'gpt-4') {
+          if (currentModel.id === 'gpt-4') {
             gpt4UsageCount.value++
           }
         } else {
@@ -217,8 +232,6 @@ export default {
       }
     }
 
-    
-
     onMounted(() => {
       userInput.value = ''
       messages.value = []
@@ -227,13 +240,12 @@ export default {
 
     return {
       models,
-      currentModel,
+      currentModelId,
+      getCurrentModelName,
       messages,
       userInput,
       loading,
       chatContainer,
-      selectKey,
-      handleSelect,
       sendMessage,
       copyMessage,
       regenerateMessage,

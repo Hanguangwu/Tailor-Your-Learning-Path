@@ -79,7 +79,7 @@
   </div>
   <div class="bg-gray-100 py-8 mt-8">
   <div class="container mx-auto px-4">
-    <h3 class="text-xl font-bold text-center text-indigo-600 mb-4">使用方法和效果</h3>
+    <h3 class="text-xl font-bold text-center text-indigo-600 mb-4">使用说明</h3>
     <div class="max-w-3xl mx-auto">
       <p class="text-gray-700 text-center mb-4">
         自测是一种经过科学验证的有效学习策略。通过主动回忆和测试，可以帮助加强记忆效果，提高对所学知识的理解和应用能力。定期进行自测不仅能帮助发现学习中的薄弱环节，还能及时调整学习计划，提高学习效率。

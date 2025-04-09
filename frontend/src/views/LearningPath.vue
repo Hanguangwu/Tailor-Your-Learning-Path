@@ -8,8 +8,8 @@
         <h2 class="text-xl font-semibold mb-4">设置推荐参数</h2>
         
         <div class="mb-4">
-          <label class="block text-gray-700 mb-2">推荐课程数量</label>
-          <el-input-number v-model="recommendationCount" :min="1" :max="10" />
+          <label class="block text-gray-700 mb-2">推荐课程数量（最多9门）</label>
+          <el-input-number v-model="recommendationCount" :min="1" :max="9" />
         </div>
         
         <el-button type="primary" @click="getRecommendations" :loading="loading">

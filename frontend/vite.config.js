@@ -10,7 +10,16 @@ export default defineConfig(({ mode }) => {
   const backendUrl = env.VITE_BACKEND_BASE_URL || 'http://localhost:3000'
   
   return {
-    plugins: [vue()],
+    plugins: [
+      vue({
+      template: {
+        compilerOptions: {
+          // 将 el-loading 标记为自定义元素，避免警告
+          isCustomElement: tag => tag === 'el-loading'
+        }
+      }
+    })
+  ],
     server: {
       port: 5173,  // 前端使用不同的端口
       proxy: {

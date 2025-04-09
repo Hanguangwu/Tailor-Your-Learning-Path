@@ -18,7 +18,7 @@
           {{ course.difficulty }}
         </span>
         <span class="text-sm text-gray-500">
-          已选 {{ course.enrollment_count || 0 }}
+          已选人数 {{ course.enrollment_count || 0 }}
         </span>
       </div>
       

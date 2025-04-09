@@ -39,9 +39,11 @@ const routes = [
     name: 'ResourceWebsite',
     component: () => import('@/views/ResourceWebsite.vue'),
     children: [
-      { path: '', redirect: '/websites/programming', component: () => import('@/views/navigation/ProgrammingResources.vue')  },
+      { path: '', redirect: '/websites/nav', component: () => import('@/views/navigation/NavResources.vue')  },
+      { path: 'nav', component: () => import('@/views/navigation/NavResources.vue') },
+      { path: 'study', component: () => import('@/views/navigation/StudyResources.vue') },
       { path: 'programming', component: () => import('@/views/navigation/ProgrammingResources.vue') },
-      { path: 'general-tools', component: () => import('@/views/navigation/GeneralToolsResources.vue') },
+      { path: 'practical-tools', component: () => import('@/views/navigation/PracticalToolsResources.vue') },
       { path: 'ai-tools', component: () => import('@/views/navigation/AIToolsResources.vue') }
     ]
   },

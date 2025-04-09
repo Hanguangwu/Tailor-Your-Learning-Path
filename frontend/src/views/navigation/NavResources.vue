@@ -12,7 +12,7 @@
       <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
     </div>
     <div v-if="!loading && websites.length === 0" class="text-center py-8 text-gray-500">
-      暂无AI工具相关资源
+      暂无导航网站
     </div>
   </div>
 </template>
@@ -22,7 +22,7 @@ import { ref, onMounted } from 'vue'
 import axios from '@/axios'
 
 export default {
-  name: 'AIToolsResources',
+  name: 'NavToolsResources',
   setup() {
     const websites = ref([])
     const loading = ref(true)
@@ -30,10 +30,10 @@ export default {
     const fetchWebsites = async () => {
       try {
         loading.value = true
-        const response = await axios.get('/api/websites/category/AI工具')
+        const response = await axios.get('/api/websites/category/导航')
         websites.value = response.data
       } catch (error) {
-        console.error('获取AI工具网站数据失败:', error)
+        console.error('获取导航网站数据失败:', error)
       } finally {
         loading.value = false
       }

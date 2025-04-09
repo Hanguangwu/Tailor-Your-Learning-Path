@@ -12,7 +12,7 @@
       <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
     </div>
     <div v-if="!loading && websites.length === 0" class="text-center py-8 text-gray-500">
-      暂无通用工具相关资源
+      暂无普通实用工具相关资源
     </div>
   </div>
 </template>
@@ -30,7 +30,7 @@ export default {
     const fetchWebsites = async () => {
       try {
         loading.value = true
-        const response = await axios.get('/api/websites/category/通用工具')
+        const response = await axios.get('/api/websites/category/普通实用工具')
         websites.value = response.data
       } catch (error) {
         console.error('获取通用工具网站数据失败:', error)
