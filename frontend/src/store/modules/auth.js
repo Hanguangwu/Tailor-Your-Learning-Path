@@ -30,27 +30,27 @@ const actions = {
       const formDataObj = new FormData()
       formDataObj.append('username', formData.username)
       formDataObj.append('password', formData.password)
-
-      console.log('发送登录请求:', formData.username)
-
+  
+      //console.log('发送登录请求:', formData.username)
+  
       const response = await axios.post('/api/auth/login', formDataObj, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
-
-      console.log('登录响应:', response)
-
-      // 检查响应格式
-      if (!response.access_token || !response.user) {
+  
+      //console.log('登录响应:', response)
+  
+      // 修改这里：从 response.data 中获取数据
+      if (!response.data || !response.data.access_token || !response.data.user) {
         console.error('登录响应格式不正确:', response)
         throw new Error('登录响应格式不正确')
       }
-
-      const { access_token, user } = response
-
+  
+      const { access_token, user } = response.data
+  
       commit('SET_AUTH_DATA', { token: access_token, user })
-
+  
       // 设置 token 过期检查
       try {
         const decodedToken = jwtDecode(access_token)
@@ -66,8 +66,8 @@ const actions = {
       } catch (tokenError) {
         console.error('解析 token 失败:', tokenError)
       }
-
-      return response
+  
+      return response.data
     } catch (error) {
       console.error('登录失败:', error)
       throw error

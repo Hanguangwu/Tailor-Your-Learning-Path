@@ -92,7 +92,7 @@ export default {
         callback()
       }
     }
-    
+
     return {
       loginForm: {
         username: '',
@@ -187,9 +187,9 @@ export default {
         if (this.resetStep === 1) {
           await this.$refs.forgotPasswordFormRef.validate()
         }
-        
+
         this.sending = true
-        
+
         // 设置倒计时
         this.isTime = true
         this.currentTime = 60
@@ -200,18 +200,18 @@ export default {
             this.isTime = false
           }
         }, 1000)
-        
+
         // 发送验证码请求
         const response = await axios.post('/api/auth/send-code', {
           email: this.forgotPasswordForm.email,
           type: 'reset_password'
         })
-        
+
         // 如果是第一步，进入第二步
         if (this.resetStep === 1) {
           this.resetStep = 2
         }
-        
+
         this.$message.success('验证码已发送到您的邮箱')
       } catch (error) {
         console.error('发送验证码错误:', error)
@@ -226,14 +226,14 @@ export default {
       try {
         await this.$refs.verifyCodeFormRef.validate()
         this.verifying = true
-        
+
         // 发送验证码验证请求
         const response = await axios.post('/api/auth/verify-code', {
           email: this.forgotPasswordForm.email,
           code: this.verifyCodeForm.code,
           type: 'reset_password'
         })
-        
+
         // 验证成功，进入设置新密码步骤
         this.resetStep = 3
         this.$message.success('验证码验证成功')
@@ -250,17 +250,17 @@ export default {
       try {
         await this.$refs.resetPasswordFormRef.validate()
         this.resetting = true
-        
+
         // 发送重置密码请求
         const response = await axios.post('/api/auth/reset-password', {
           email: this.forgotPasswordForm.email,
           code: this.verifyCodeForm.code,
           new_password: this.resetPasswordForm.newPassword
         })
-        
+
         this.$message.success('密码重置成功')
         this.forgotPasswordVisible = false
-        
+
         // 清空表单
         this.forgotPasswordForm.email = ''
         this.verifyCodeForm.code = ''
