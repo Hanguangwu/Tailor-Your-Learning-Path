@@ -254,8 +254,6 @@ async def unselect_course(course_id: str, current_user: str = Depends(get_curren
         print(f"退选课程错误: {str(e)}")  # 添加错误日志
         raise HTTPException(status_code=500, detail=str(e))
 
-
-
 @router.get("/achievements")
 async def get_user_achievements(current_user: str = Depends(get_current_user)):
     try:
@@ -308,8 +306,15 @@ async def get_user_achievements(current_user: str = Depends(get_current_user)):
             })
             points += 15
 
-        # 评论相关成就
-        comments_count = user.get("comments_count", 0)
+        # 评论相关成就 - 从comments表中获取评论数量
+        comments_count = db.comments.count_documents({"user_id": current_user})
+        
+        # 保存评论数量到用户表中，方便其他地方使用
+        db.users.update_one(
+            {"_id": ObjectId(current_user)},
+            {"$set": {"comments_count": comments_count}}
+        )
+        
         if comments_count >= 1:
             achievements.append({
                 "badgeId": "first_comment",
@@ -323,6 +328,15 @@ async def get_user_achievements(current_user: str = Depends(get_current_user)):
                 "earnedAt": user.get("social_butterfly_date", None)
             })
             points += 30
+
+        # 更新用户积分到数据库
+        db.users.update_one(
+            {"_id": ObjectId(current_user)},
+            {"$set": {
+                "points": points,
+                "badges": achievements
+            }}
+        )
 
         return {
             "points": points,
@@ -338,61 +352,16 @@ async def get_leaderboard():
         # 获取所有用户
         users = list(db.users.find({}, {
             "username": 1,
-            "selected_courses": 1,
-            "badges": 1,
-            "points": 1
+            "points": 1,
+            "badges": 1
         }))
 
         leaderboard = []
         for user in users:
-            # 计算用户积分和成就
-            user_points = 0
-            user_badges = []
+            # 使用数据库中已有的积分和成就数据
+            user_points = user.get("points", 0)
+            user_badges = user.get("badges", [])
             
-            # 计算选课相关成就和积分
-            selected_courses_count = len(user.get("selected_courses", []))
-            
-            # 初次选课成就
-            if selected_courses_count >= 1:
-                user_badges.append({
-                    "badgeId": "first_course",
-                    "earnedAt": user.get("first_course_date")
-                })
-                user_points += 10
-
-            # 课程收藏家成就
-            if selected_courses_count >= 5:
-                user_badges.append({
-                    "badgeId": "course_collector_bronze",
-                    "earnedAt": user.get("bronze_collector_date")
-                })
-                user_points += 20
-
-            if selected_courses_count >= 10:
-                user_badges.append({
-                    "badgeId": "course_collector_silver",
-                    "earnedAt": user.get("silver_collector_date")
-                })
-                user_points += 50
-
-            if selected_courses_count >= 20:
-                user_badges.append({
-                    "badgeId": "course_collector_gold",
-                    "earnedAt": user.get("gold_collector_date")
-                })
-                user_points += 100
-
-            # 更新用户成就和积分到数据库
-            db.users.update_one(
-                {"_id": user["_id"]},
-                {
-                    "$set": {
-                        "points": user_points,
-                        "badges": user_badges
-                    }
-                }
-            )
-
             leaderboard.append({
                 "_id": str(user["_id"]),
                 "username": user.get("username", "未知用户"),
@@ -400,8 +369,8 @@ async def get_leaderboard():
                 "badgeCount": len(user_badges)
             })
 
-        # 按积分降序排序
-        leaderboard.sort(key=lambda x: x["points"], reverse=True)
+        # 先按积分降序排序，再按成就数量降序排序
+        leaderboard.sort(key=lambda x: (x["points"], x["badgeCount"]), reverse=True)
         return leaderboard[:10]  # 返回前10名
 
     except Exception as e:
@@ -414,120 +383,121 @@ async def check_achievements(current_user: str = Depends(get_current_user)):
         user = db.users.find_one({"_id": ObjectId(current_user)})
         if not user:
             raise HTTPException(status_code=404, detail="用户未找到")
-        
         # 获取用户当前成就
-        achievements = user.get("achievements", {})
-        if not achievements:
-            achievements = {"points": 0, "badges": []}
+        current_badges = []
+        if user.get("badges"):
+            current_badges = user.get("badges", [])
         
-        current_badges = {badge["badgeId"] for badge in achievements.get("badges", [])}
+        current_badge_ids = {badge.get("badgeId") for badge in current_badges if "badgeId" in badge}
         new_badges = []
-        points_earned = 0
+        total_points = 0
         
         # 获取用户选择的课程数量
-        selected_courses = list(db.user_courses.find({"user_id": ObjectId(current_user)}))
-        course_count = len(selected_courses)
+        selected_courses_count = len(user.get("selected_courses", []))
         
-        # 获取用户评论数量
-        comments = list(db.comments.find({"user_id": ObjectId(current_user)}))
-        comment_count = len(comments)
+        # 获取用户评论数量 - 从comments表中获取
+        comments_count = db.comments.count_documents({"user_id": current_user})
+        # 保存评论数量到用户表中，方便其他地方使用
+        db.users.update_one(
+            {"_id": ObjectId(current_user)},
+            {"$set": {"comments_count": comments_count}}
+        )
         
         # 检查是否完成个人资料
-        profile_complete = all(user.get(field) for field in ["education", "industry", "interests"])
-        
+        profile_complete = user.get("profile_completed", False)
         # 检查是否使用过学习路径
-        learning_path_used = db.user_activities.find_one({
-            "user_id": ObjectId(current_user),
-            "activity_type": "learning_path_generated"
-        }) is not None
-        
-        # 检查各种成就条件
+        learning_path_used = user.get("learning_path_used", False)
+        # 计算所有成就和积分
         
         # 初出茅庐
-        if course_count >= 1 and "first_course" not in current_badges:
-            new_badges.append({
-                "badgeId": "first_course",
-                "earnedAt": datetime.now().isoformat()
-            })
-            points_earned += 10
+        if selected_courses_count >= 1:
+            if "first_course" not in current_badge_ids:
+                new_badges.append({
+                    "badgeId": "first_course",
+                    "earnedAt": datetime.now().isoformat()
+                })
+            total_points += 10
         
         # 课程收藏家 I
-        if course_count >= 5 and "course_collector_bronze" not in current_badges:
-            new_badges.append({
-                "badgeId": "course_collector_bronze",
-                "earnedAt": datetime.now().isoformat()
-            })
-            points_earned += 20
+        if selected_courses_count >= 5:
+            if "course_collector_bronze" not in current_badge_ids:
+                new_badges.append({
+                    "badgeId": "course_collector_bronze",
+                    "earnedAt": datetime.now().isoformat()
+                })
+            total_points += 20
         
         # 课程收藏家 II
-        if course_count >= 10 and "course_collector_silver" not in current_badges:
-            new_badges.append({
-                "badgeId": "course_collector_silver",
-                "earnedAt": datetime.now().isoformat()
-            })
-            points_earned += 50
+        if selected_courses_count >= 10:
+            if "course_collector_silver" not in current_badge_ids:
+                new_badges.append({
+                    "badgeId": "course_collector_silver",
+                    "earnedAt": datetime.now().isoformat()
+                })
+            total_points += 50
         
         # 课程收藏家 III
-        if course_count >= 20 and "course_collector_gold" not in current_badges:
-            new_badges.append({
-                "badgeId": "course_collector_gold",
-                "earnedAt": datetime.now().isoformat()
-            })
-            points_earned += 100
+        if selected_courses_count >= 20:
+            if "course_collector_gold" not in current_badge_ids:
+                new_badges.append({
+                    "badgeId": "course_collector_gold",
+                    "earnedAt": datetime.now().isoformat()
+                })
+            total_points += 100
         
         # 完善档案
-        if profile_complete and "profile_complete" not in current_badges:
-            new_badges.append({
-                "badgeId": "profile_complete",
-                "earnedAt": datetime.now().isoformat()
-            })
-            points_earned += 15
+        if profile_complete:
+            if "profile_complete" not in current_badge_ids:
+                new_badges.append({
+                    "badgeId": "profile_complete",
+                    "earnedAt": datetime.now().isoformat()
+                })
+            total_points += 15
         
         # 规划未来
-        if learning_path_used and "learning_path" not in current_badges:
-            new_badges.append({
-                "badgeId": "learning_path",
-                "earnedAt": datetime.now().isoformat()
-            })
-            points_earned += 25
+        if learning_path_used:
+            if "learning_path" not in current_badge_ids:
+                new_badges.append({
+                    "badgeId": "learning_path",
+                    "earnedAt": datetime.now().isoformat()
+                })
+            total_points += 25
         
         # 初次发声
-        if comment_count >= 1 and "first_comment" not in current_badges:
-            new_badges.append({
-                "badgeId": "first_comment",
-                "earnedAt": datetime.now().isoformat()
-            })
-            points_earned += 10
+        if comments_count >= 1:
+            if "first_comment" not in current_badge_ids:
+                new_badges.append({
+                    "badgeId": "first_comment",
+                    "earnedAt": datetime.now().isoformat()
+                })
+            total_points += 10
         
         # 社交达人
-        if comment_count >= 10 and "social_butterfly" not in current_badges:
-            new_badges.append({
-                "badgeId": "social_butterfly",
-                "earnedAt": datetime.now().isoformat()
-            })
-            points_earned += 30
+        if comments_count >= 10:
+            if "social_butterfly" not in current_badge_ids:
+                new_badges.append({
+                    "badgeId": "social_butterfly",
+                    "earnedAt": datetime.now().isoformat()
+                })
+            total_points += 30
         
-        # 更新用户成就
-        if new_badges or points_earned > 0:
-            updated_badges = achievements.get("badges", []) + new_badges
-            updated_points = achievements.get("points", 0) + points_earned
-            
-            db.users.update_one(
-                {"_id": ObjectId(current_user)},
-                {"$set": {
-                    "achievements.points": updated_points,
-                    "achievements.badges": updated_badges
-                }}
-            )
-            
-            return {
-                "success": True,
-                "new_badges": new_badges,
-                "points_earned": points_earned,
-                "total_points": updated_points
-            }
+        # 更新用户成就和积分
+        updated_badges = current_badges + new_badges
         
-        return {"success": True, "message": "没有新的成就"}
+        db.users.update_one(
+            {"_id": ObjectId(current_user)},
+            {"$set": {
+                "points": total_points,
+                "badges": updated_badges
+            }}
+        )
+        
+        return {
+            "success": True,
+            "new_badges": new_badges,
+            "points_earned": total_points - user.get("points", 0),
+            "total_points": total_points
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

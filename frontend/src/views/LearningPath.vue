@@ -65,6 +65,15 @@ export default {
     const recommendationCount = ref(5)
     const recommendations = ref([])
     const loading = ref(false)
+
+    // 检查用户成就
+    const checkAchievements = async () => {
+      try {
+        await axios.post('/api/profile/check-achievements')
+      } catch (error) {
+        console.error('检查成就失败:', error)
+      }
+    }
     
     const getRecommendations = async () => {
       loading.value = true

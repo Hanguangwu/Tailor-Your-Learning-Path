@@ -8,7 +8,7 @@ import os
 from dotenv import load_dotenv
 import sys
 import json
-
+from datetime import datetime
 # 添加utils目录到路径
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "utils"))
 
@@ -70,6 +70,19 @@ async def recommend_learning_path(
                 description=rec.get("description", ""),
                 reason=rec["reason"]
             ))
+        
+        # 更新用户的learning_path_used属性为True
+        db.users.update_one(
+            {"_id": ObjectId(current_user)},
+            {"$set": {"learning_path_used": True}}
+        )
+        
+        # 如果是第一次使用学习路径，记录日期
+        if not user.get("learning_path_used", False):
+            db.users.update_one(
+                {"_id": ObjectId(current_user)},
+                {"$set": {"learning_path_date": datetime.now().isoformat()}}
+            )
         
         return validated_recommendations
         

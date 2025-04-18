@@ -24,32 +24,26 @@
             </div>
           </div>
           <div class="flex items-center space-x-4">
-            <button @click="likeComment(comment._id)" 
-              :class="['flex items-center space-x-1 px-2 py-1 rounded hover:bg-gray-200',
-                comment.liked_by.includes(currentUserId) ? 'text-blue-600' : 'text-gray-500']"
-              title="喜欢">
+            <button @click="likeComment(comment._id)" :class="['flex items-center space-x-1 px-2 py-1 rounded hover:bg-gray-200',
+        comment.liked_by.includes(currentUserId) ? 'text-blue-600' : 'text-gray-500']" title="喜欢">
               <i class="fas fa-thumbs-up"></i>
               <span>{{ comment.likes }}</span>
             </button>
-            <button @click="dislikeComment(comment._id)" 
-              :class="['flex items-center space-x-1 px-2 py-1 rounded hover:bg-gray-200',
-                comment.disliked_by.includes(currentUserId) ? 'text-red-600' : 'text-gray-500']"
-              title="不喜欢">
+            <button @click="dislikeComment(comment._id)" :class="['flex items-center space-x-1 px-2 py-1 rounded hover:bg-gray-200',
+        comment.disliked_by.includes(currentUserId) ? 'text-red-600' : 'text-gray-500']" title="不喜欢">
               <i class="fas fa-thumbs-down"></i>
               <span>{{ comment.dislikes }}</span>
             </button>
             <!-- 修改删除按钮的条件判断，确保字符串比较 -->
-            <button v-if="isCommentOwner(comment)" 
-              @click="deleteComment(comment._id)"
-              class="text-gray-500 hover:text-red-600 px-2 py-1 rounded hover:bg-gray-200"
-              title="删除评论">
+            <button v-if="isCommentOwner(comment)" @click="deleteComment(comment._id)"
+              class="text-gray-500 hover:text-red-600 px-2 py-1 rounded hover:bg-gray-200" title="删除评论">
               <i class="fas fa-trash-alt"></i>
             </button>
           </div>
         </div>
         <p class="mt-2 text-gray-700">{{ comment.content }}</p>
       </div>
-      
+
       <!-- 无评论时显示 -->
       <div v-if="comments.length === 0" class="text-center py-8 text-gray-500">
         暂无评论，快来发表第一条评论吧！
@@ -76,7 +70,7 @@ export default {
     const store = useStore()
     const comments = ref([])
     const newComment = ref('')
-    
+
     // 从 localStorage 获取用户信息
     const getUserFromLocalStorage = () => {
       try {
@@ -89,32 +83,32 @@ export default {
       }
       return null
     }
-    
+
     // 使用计算属性获取当前用户，优先从 store 获取，如果没有则从 localStorage 获取
     const currentUser = computed(() => {
       return getUserFromLocalStorage() || store.state.auth.user
     })
-    
+
     // 获取当前用户 ID
     const currentUserId = computed(() => {
       const user = currentUser.value
       return user ? user.id : ''
     })
-    
+
     // 判断评论是否属于当前用户
     const isCommentOwner = (comment) => {
       if (!currentUser.value) {
         console.log('用户未登录')
         return false
       }
-      
+
       // 确保两边都是字符串类型进行比较
       const commentUserId = String(comment.user_id || '')
       const userId = String(currentUserId.value || '')
-      
+
       console.log('评论用户ID:', commentUserId)
       console.log('当前用户ID:', userId)
-      
+
       return commentUserId === userId
     }
 
@@ -139,6 +133,8 @@ export default {
         ElMessage.success('评论发表成功')
         newComment.value = ''
         await fetchComments()
+        // 在评论提交成功后
+        await store.dispatch('achievements/checkAndUpdateAchievements');
       } catch (error) {
         ElMessage.error(error.response?.data?.detail || '发表评论失败')
         console.error('发表评论失败:', error)
@@ -178,7 +174,7 @@ export default {
             type: 'warning',
           }
         )
-        
+
         // 添加超时设置和错误处理
         const response = await axios.delete(`/api/comments/${commentId}`, {
           timeout: 10000,  // 设置超时时间为10秒
@@ -186,7 +182,7 @@ export default {
             'Authorization': `Bearer ${localStorage.getItem('token')}`  // 确保发送认证信息
           }
         })
-        
+
         if (response.status === 200) {
           ElMessage.success('评论已删除')
           await fetchComments()
@@ -197,11 +193,11 @@ export default {
         if (error === 'cancel') {
           return
         }
-        
+
         // 详细记录错误信息
         console.error('删除评论错误详情:', error)
         console.error('错误响应:', error.response)
-        
+
         // 显示更友好的错误信息
         if (error.response?.status === 403) {
           ElMessage.error('没有权限删除此评论')

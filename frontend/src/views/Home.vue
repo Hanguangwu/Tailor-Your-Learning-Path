@@ -14,18 +14,18 @@
           <span class="block text-4xl mt-2">为每个学习者定制学习体验</span>
         </h1>
         <p class="text-xl mb-8 text-center max-w-2xl">
-          基于AI驱动的学习平台，利用大语言模型智能助手提供个性化课程推荐、作业辅导和资源网站导航，满足每个人的独特需求。
+          基于AI驱动的学习平台，利用大语言模型提供个性化课程推荐和学习辅助，帮助用户成为更好的自己。
         </p>
 
         <!-- 添加特点列表 -->
         <ul class="flex flex-wrap justify-center gap-6 mb-8">
           <li class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            提升技能
+            兴趣驱动
           </li>
           <li class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
-            获得认可
+            提升技能
           </li>
           <li class="flex items-center">
             <i class="fas fa-check-circle mr-2"></i>
@@ -82,12 +82,12 @@
           <div class="p-6 bg-gray-50 rounded-lg">
             <h3 class="text-xl font-semibold mb-4">智能自测系统</h3>
             <p class="text-gray-600">
-              提供多样化的自测工具，帮助学习者及时发现知识盲点，评估学习效果。通过即时反馈和个性化建议，指导学习者调整学习策略。
+              提供自测工具，帮助学习者及时发现知识盲点，评估学习效果。通过即时反馈和个性化建议，指导学习者调整学习策略。
             </p>
           </div>
 
           <div class="p-6 bg-gray-50 rounded-lg">
-            <h3 class="text-xl font-semibold mb-4">游戏化PBL系统</h3>
+            <h3 class="text-xl font-semibold mb-4">游戏化系统</h3>
             <p class="text-gray-600">
               结合游戏元素与项目导向学习，通过积分、等级和成就系统激励学习。在趣味化的学习环境中培养问题解决能力和团队协作精神。
             </p>

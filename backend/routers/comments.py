@@ -31,6 +31,30 @@ async def create_comment(course_id: str, comment: CommentCreate, current_user: s
         }
         
         result = db.comments.insert_one(comment_data)
+        
+        # 获取用户当前评论数量
+        comments_count = db.comments.count_documents({"user_id": current_user})
+        
+        # 更新用户评论数量
+        db.users.update_one(
+            {"_id": ObjectId(current_user)},
+            {"$set": {"comments_count": comments_count}}
+        )
+        
+        # 检查是否是第一条评论，如果是则记录日期
+        if comments_count == 1:
+            db.users.update_one(
+                {"_id": ObjectId(current_user)},
+                {"$set": {"first_comment_date": datetime.utcnow().isoformat()}}
+            )
+        
+        # 检查是否达到10条评论，如果是则记录日期
+        if comments_count == 10:
+            db.users.update_one(
+                {"_id": ObjectId(current_user)},
+                {"$set": {"social_butterfly_date": datetime.utcnow().isoformat()}}
+            )
+        
         return {"id": str(result.inserted_id), "message": "评论发表成功"}
     except Exception as e:
         print(f"Create comment error: {str(e)}")  # 添加错误日志
