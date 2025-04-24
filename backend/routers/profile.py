@@ -630,3 +630,37 @@ async def get_user_profile(current_user: str = Depends(get_current_user)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+@router.put("/achievement-diaries/{diary_id}")
+async def update_achievement_diary(
+    diary_id: str,
+    diary: AchievementDiary,
+    current_user: str = Depends(get_current_user)
+):
+    try:
+        # 确保日记存在且属于当前用户
+        existing_diary = db.achievement_diaries.find_one({
+            "_id": ObjectId(diary_id),
+            "user_id": ObjectId(current_user)
+        })
+        
+        if not existing_diary:
+            raise HTTPException(status_code=404, detail="成就日记不存在")
+            
+        # 更新日记内容
+        db.achievement_diaries.update_one(
+            {"_id": ObjectId(diary_id)},
+            {"$set": {
+                "title": diary.title,
+                "content": diary.content,
+                "tags": diary.tags
+            }}
+        )
+        
+        # 获取更新后的日记
+        updated_diary = db.achievement_diaries.find_one({"_id": ObjectId(diary_id)})
+        updated_diary["_id"] = str(updated_diary["_id"])
+        updated_diary["user_id"] = str(updated_diary["user_id"])
+        
+        return updated_diary
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

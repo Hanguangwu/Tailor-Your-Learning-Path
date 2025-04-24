@@ -19,7 +19,10 @@
                             <h3 class="text-xl font-semibold text-indigo-700">{{ diary.title }}</h3>
                             <div class="flex items-center space-x-2">
                                 <span class="text-sm text-gray-500">{{ formatDate(diary.createdAt) }}</span>
-                                <el-button type="danger" size="small" @click="deleteDiary(diary._id)">
+                                <el-button type="primary" size="small" @click="showEditDialog(diary)">
+                                    <i class="fas fa-edit"></i>
+                                </el-button>
+                                <el-button type="danger" size="small" @click="confirmDelete(diary._id)">
                                     <i class="fas fa-trash"></i>
                                 </el-button>
                             </div>
@@ -41,8 +44,8 @@
             </div>
 
             <!-- 新增成就日记对话框 -->
-            <el-dialog v-model="addDialogVisible" title="记录新成就" width="50%">
-                <el-form @submit.prevent="addDiary" :model="newDiary" label-position="top">
+            <el-dialog v-model="addDialogVisible" :title="isEditing ? '编辑成就' : '记录新成就'" width="50%">
+                <el-form @submit.prevent="isEditing ? updateDiary() : addDiary()" :model="newDiary" label-position="top">
                     <el-form-item label="成就标题">
                         <el-input v-model="newDiary.title" placeholder="为你的成就取个标题"></el-input>
                     </el-form-item>
@@ -62,8 +65,8 @@
                 <template #footer>
                     <span class="dialog-footer">
                         <el-button @click="addDialogVisible = false">取消</el-button>
-                        <el-button type="primary" @click="addDiary" :disabled="!isValidDiary">
-                            保存
+                        <el-button type="primary" @click="isEditing ? updateDiary() : addDiary()" :disabled="!isValidDiary">
+                            {{ isEditing ? '更新' : '保存' }}
                         </el-button>
                     </span>
                 </template>
@@ -75,7 +78,7 @@
 <script>
 import { ref, computed } from 'vue'
 import axios from '@/axios'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -87,6 +90,8 @@ export default {
     setup() {
         const diaries = ref([])
         const addDialogVisible = ref(false)
+        const isEditing = ref(false)
+        const currentDiaryId = ref(null)
         const newDiary = ref({
             title: '',
             content: '',
@@ -133,6 +138,68 @@ export default {
             }
         }
 
+        // 显示编辑对话框
+        const showEditDialog = (diary) => {
+            isEditing.value = true
+            currentDiaryId.value = diary._id
+            newDiary.value = {
+                title: diary.title,
+                content: diary.content,
+                tags: diary.tags || []
+            }
+            addDialogVisible.value = true
+        }
+
+        // 更新成就日记
+        const updateDiary = async () => {
+            if (!isValidDiary.value || !currentDiaryId.value) return
+
+            try {
+                const response = await axios.put(`/api/profile/achievement-diaries/${currentDiaryId.value}`, {
+                    title: newDiary.value.title.trim(),
+                    content: newDiary.value.content.trim(),
+                    tags: newDiary.value.tags
+                })
+                
+                // 更新本地数据
+                const index = diaries.value.findIndex(d => d._id === currentDiaryId.value)
+                if (index !== -1) {
+                    diaries.value[index] = {
+                        ...diaries.value[index],
+                        title: newDiary.value.title.trim(),
+                        content: newDiary.value.content.trim(),
+                        tags: newDiary.value.tags
+                    }
+                }
+                
+                addDialogVisible.value = false
+                resetNewDiary()
+                ElMessage.success('成就记录更新成功')
+            } catch (error) {
+                console.error('更新成就日记失败:', error)
+                ElMessage.error('更新失败')
+            }
+        }
+
+        // 确认删除
+        const confirmDelete = (diaryId) => {
+            ElMessageBox.confirm(
+                '确定要删除这条成就记录吗？此操作不可恢复。',
+                '删除确认',
+                {
+                    confirmButtonText: '确定删除',
+                    cancelButtonText: '取消',
+                    type: 'warning',
+                }
+            )
+            .then(() => {
+                deleteDiary(diaryId)
+            })
+            .catch(() => {
+                ElMessage.info('已取消删除')
+            })
+        }
+
         // 删除成就日记
         const deleteDiary = async (diaryId) => {
             try {
@@ -152,10 +219,14 @@ export default {
                 content: '',
                 tags: []
             }
+            isEditing.value = false
+            currentDiaryId.value = null
         }
 
         // 显示新增对话框
         const showAddDialog = () => {
+            isEditing.value = false
+            currentDiaryId.value = null
             addDialogVisible.value = true
             resetNewDiary()
         }
@@ -181,9 +252,13 @@ export default {
             newDiary,
             commonTags,
             isValidDiary,
+            isEditing,
             showAddDialog,
+            showEditDialog,
             addDiary,
+            updateDiary,
             deleteDiary,
+            confirmDelete,
             formatDate
         }
     }
