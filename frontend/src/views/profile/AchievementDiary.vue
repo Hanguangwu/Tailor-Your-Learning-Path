@@ -76,6 +76,11 @@
 import { ref, computed } from 'vue'
 import axios from '@/axios'
 import { ElMessage } from 'element-plus'
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export default {
     name: 'AchievementDiary',
@@ -156,16 +161,16 @@ export default {
         }
 
         // 格式化日期
-        const formatDate = (dateString) => {
-            const date = new Date(dateString)
-            return date.toLocaleDateString('zh-CN', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            })
-        }
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const formatDate = (utcDateString) => {
+            if (!utcDateString) return '';
+            // 1. 先把字符串解析为UTC时间  
+            const utcDate = dayjs.utc(utcDateString);
+            // 2. 转换到用户所在时区  
+            const customizedTime = utcDate.tz(userTimeZone);
+            // 3. 格式化输出  
+            return customizedTime.format('YYYY年MM月DD日 HH:mm');
+        };
 
         // 初始化加载数据
         fetchDiaries()

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from database import db
 from .auth import get_current_user, verify_password, get_password_hash
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -517,7 +517,8 @@ async def create_todo(todo: Todo, current_user: str = Depends(get_current_user))
     try:
         todo_dict = todo.dict()
         todo_dict["user_id"] = ObjectId(current_user)
-        todo_dict["createdAt"] = datetime.utcnow()
+        # 使用 UTC 时间
+        todo_dict["createdAt"] = datetime.now(tz=timezone.utc)
         result = db.todos.insert_one(todo_dict)
         created_todo = db.todos.find_one({"_id": result.inserted_id})
         created_todo["_id"] = str(created_todo["_id"])
@@ -586,7 +587,7 @@ async def create_achievement_diary(
     try:
         diary_dict = diary.dict()
         diary_dict["user_id"] = ObjectId(current_user)
-        diary_dict["createdAt"] = datetime.utcnow()
+        diary_dict["createdAt"] = datetime.now(tz=timezone.utc)
         
         result = db.achievement_diaries.insert_one(diary_dict)
         created_diary = db.achievement_diaries.find_one({"_id": result.inserted_id})
