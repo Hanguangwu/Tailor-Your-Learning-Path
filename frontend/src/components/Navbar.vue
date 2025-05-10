@@ -9,7 +9,7 @@
             量身学程
           </router-link>
 
-          
+          <!-- 桌面端导航菜单 -->
           <div class="hidden md:flex items-center space-x-8">
             <router-link to="/courses" class="text-gray-700 hover:text-indigo-600">
               全部课程
@@ -35,13 +35,23 @@
           </div>
         </div>
 
-        <!-- 中间搜索框 -->
+        <!-- 中间搜索框 - 仅桌面端显示 -->
         <div class="flex-1 max-w-2xl px-4 hidden md:flex items-center justify-center">
           <SearchBar @search="handleSearch" />
         </div>
+        
+        <!-- 移动端汉堡菜单按钮 -->
+        <div class="md:hidden flex items-center">
+          <button @click="toggleMobileMenu" class="text-gray-700 hover:text-indigo-600 focus:outline-none">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path v-if="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-        <!-- 右侧用户区域 -->
-        <div class="flex items-center">
+        <!-- 右侧用户区域 - 仅桌面端显示 -->
+        <div class="hidden md:flex items-center">
           <!-- 未登录状态 -->
           <template v-if="!isLoggedIn">
             <router-link to="/login" class="text-gray-700 hover:text-indigo-600 px-3 py-2">
@@ -96,6 +106,66 @@
         </div>
       </div>
     </div>
+    
+    <!-- 移动端菜单 -->
+    <div class="md:hidden bg-white shadow-lg mobile-menu" :class="{ 'menu-open': mobileMenuOpen }">
+      <div class="px-2 pt-2 pb-3 space-y-1">
+        <router-link to="/courses" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50">
+          全部课程
+        </router-link>
+        <router-link to="/websites" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50">
+          资源网站
+        </router-link>
+        <router-link to="/chat" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50">
+          AI聊天
+        </router-link>
+        <router-link to="/memory-tool" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50">
+          记忆工具
+        </router-link>
+        <router-link to="/self-test" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50">
+          自测练习
+        </router-link>
+        
+        <!-- 移动端搜索框 -->
+        <div class="px-3 py-2">
+          <SearchBar @search="handleSearch" />
+        </div>
+        
+        <!-- 移动端用户区域 -->
+        <div class="px-3 py-2">
+          <!-- 未登录状态 -->
+          <template v-if="!isLoggedIn">
+            <div class="flex flex-col space-y-2">
+              <router-link to="/login" class="block w-full text-center px-3 py-2 rounded-md text-gray-700 hover:text-indigo-600 hover:bg-indigo-50">
+                登录
+              </router-link>
+              <router-link to="/register" class="block w-full text-center px-3 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700">
+                注册
+              </router-link>
+            </div>
+          </template>
+          
+          <!-- 已登录状态 -->
+          <template v-else>
+            <div class="border-t border-gray-200 pt-2">
+              <div class="px-3 py-2 text-gray-700 font-medium">{{ username }}</div>
+              <router-link to="/profile/personal-info" class="block px-3 py-2 rounded-md text-gray-700 hover:text-indigo-600 hover:bg-indigo-50">
+                个人中心
+              </router-link>
+              <router-link to="/personal-trait" class="block px-3 py-2 rounded-md text-gray-700 hover:text-indigo-600 hover:bg-indigo-50">
+                学习偏好设置
+              </router-link>
+              <router-link to="/learning-path" class="block px-3 py-2 rounded-md text-gray-700 hover:text-indigo-600 hover:bg-indigo-50">
+                学习路径
+              </router-link>
+              <button @click="handleLogout" class="block w-full text-left px-3 py-2 rounded-md text-red-600 hover:bg-red-50">
+                退出登录
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
   </nav>
 </template>
 
@@ -115,9 +185,15 @@ export default {
     const router = useRouter()
     const showDropdown = ref(false)
     const hideTimer = ref(null)
+    const mobileMenuOpen = ref(false)
 
     const isLoggedIn = computed(() => store.state.auth.token !== null)
     const username = computed(() => isLoggedIn.value ? store.state.auth.user?.username || '' : '')  // 确保未登录时不显示用户名
+    
+    // 切换移动端菜单显示状态
+    const toggleMobileMenu = () => {
+      mobileMenuOpen.value = !mobileMenuOpen.value
+    }
   
     const hideDropdown = () => {
       hideTimer.value = setTimeout(() => {
@@ -186,11 +262,20 @@ export default {
     onBeforeUnmount(() => {
       window.removeEventListener('beforeunload', handleWindowClose)
     })
+    
+    // 监听路由变化，关闭移动端菜单
+    router.afterEach(() => {
+      if (mobileMenuOpen.value) {
+        mobileMenuOpen.value = false
+      }
+    })
 
     return {
       isLoggedIn: computed(() => store.getters['auth/isLoggedIn']),
       username,
       showDropdown,
+      mobileMenuOpen,
+      toggleMobileMenu,
       handleSearch,
       handleLogout,
       hideDropdown,
@@ -228,6 +313,20 @@ export default {
 }
 
 .group\/category:hover .group-hover\/category\:opacity-100 {
+  opacity: 1;
+}
+
+/* 移动端菜单过渡动画 */
+.mobile-menu {
+  transition: all 0.3s ease-in-out;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.mobile-menu.menu-open {
+  max-height: 1000px;
+  overflow: visible;
   opacity: 1;
 }
 </style>
